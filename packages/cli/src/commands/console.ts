@@ -1,4 +1,5 @@
 import { resolve, dirname } from "path";
+import { existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { spawn } from "child_process";
 import chalk from "chalk";
@@ -18,10 +19,12 @@ export async function consoleCommand(options: ConsoleOptions) {
     process.exit(1);
   }
 
-  // The console app is bundled in the packages/console directory
-  // For now, resolve relative to this CLI package
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  const consolePath = resolve(__dirname, "../../console");
+  const bundledConsolePath = resolve(__dirname, "../console");
+  const workspaceConsolePath = resolve(__dirname, "../../console");
+  const consolePath = existsSync(resolve(bundledConsolePath, "index.js"))
+    ? bundledConsolePath
+    : workspaceConsolePath;
 
   console.log(chalk.blue(`Starting Ahi Console on port ${options.port}...`));
   console.log(chalk.dim(`http://localhost:${options.port}`));

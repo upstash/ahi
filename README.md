@@ -36,6 +36,7 @@ An Ahi project is a folder with this layout:
 ```
 my-project/
 ├── ahi.yaml            # Agent definitions and configuration
+├── .env.example        # Example environment variables
 ├── tools/              # TypeScript files the agent can execute
 │   ├── search.ts
 │   ├── trade.ts
@@ -45,7 +46,7 @@ my-project/
 ├── data/               # Durable agent data (persists across runs)
 │   ├── portfolio.json
 │   └── memory.md
-└── .env                # API keys (optional, not committed)
+└── .env                # Your local API keys (optional, not committed)
 ```
 
 ### ahi.yaml
@@ -201,6 +202,7 @@ ahi init
 
 Creates:
 - `ahi.yaml` — default config with one agent
+- `.env.example` — example environment variables
 - `tools/example.ts` — sample tool
 - `skills/SKILL.md` — skill template
 - `data/.gitkeep` — empty data directory

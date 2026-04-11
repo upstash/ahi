@@ -1,14 +1,21 @@
 {
   "name": "@upstash/ahi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Framework for running independent agents",
   "type": "module",
   "bin": {
     "ahi": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "console",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch"
+    "bundle:console": "node ./scripts/bundle-console.mjs",
+    "dev": "tsup --watch",
+    "prepack": "pnpm --dir ../console build && pnpm build && pnpm bundle:console"
   },
   "dependencies": {
     "@upstash/box": "latest",

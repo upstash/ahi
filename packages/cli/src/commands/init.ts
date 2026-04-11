@@ -57,6 +57,15 @@ switch (command) {
 }
 `;
 
+const ENV_TEMPLATE = `# Required for ahi sync, ahi run, and ahi console
+UPSTASH_BOX_API_KEY=
+
+# Required for ahi dev, depending on the model/provider you use
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
+GOOGLE_API_KEY=
+`;
+
 export async function initCommand() {
   const cwd = process.cwd();
 
@@ -72,12 +81,14 @@ export async function initCommand() {
 
   // Write files
   writeFileSync(resolve(cwd, "ahi.yaml"), YAML_TEMPLATE);
+  writeFileSync(resolve(cwd, ".env.example"), ENV_TEMPLATE);
   writeFileSync(resolve(cwd, "skills", "SKILL.md"), SKILL_TEMPLATE);
   writeFileSync(resolve(cwd, "tools", "example.ts"), EXAMPLE_TOOL);
   writeFileSync(resolve(cwd, "data", ".gitkeep"), "");
 
   console.log(chalk.green("Initialized Ahi project:"));
   console.log("  ahi.yaml");
+  console.log("  .env.example");
   console.log("  tools/example.ts");
   console.log("  skills/SKILL.md");
   console.log("  data/");

@@ -105,13 +105,14 @@ Web UI for monitoring agent servers. Shows which agents are running, sleeping, w
 ```
 my-project/
 ├── ahi.yaml          # single agent, placeholder model
+├── .env.example      # example environment variables
 ├── tools/
 │   └── example.ts    # simple example tool
 ├── skills/
 │   └── SKILL.md      # starter skill template
 └── data/             # empty, .gitkeep
 ```
-- No `.env` in scaffold — CLI reads from env vars, optionally loads `.env` via dotenv if present
+- Scaffold includes `.env.example` but not a real `.env` file
 - Silent scaffold with defaults (no interactive prompts)
 
 ## Open Questions
