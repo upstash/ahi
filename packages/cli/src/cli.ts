@@ -1,14 +1,27 @@
 import { program } from "commander";
+import { readFileSync } from "fs";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
 import { initCommand } from "./commands/init.js";
 import { devCommand } from "./commands/dev.js";
 import { runCommand } from "./commands/run.js";
 import { syncCommand } from "./commands/sync.js";
 import { consoleCommand } from "./commands/console.js";
 
+function getVersion() {
+  try {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const packageJson = readFileSync(resolve(__dirname, "../package.json"), "utf-8");
+    return JSON.parse(packageJson).version ?? "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
 program
   .name("ahi")
   .description("Framework for running independent agents")
-  .version("0.1.0");
+  .version(getVersion());
 
 program
   .command("init")
