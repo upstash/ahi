@@ -1,0 +1,66 @@
+import { Box, inferDefaultProvider } from "@upstash/box";
+import type { AgentConfig } from "./config.js";
+import { readdirSync, statSync } from "fs";
+import { resolve, relative, join } from "path";
+
+/**
+ * Find a box by agent name or create one.
+ */
+export async function getOrCreateBox(
+  agent: AgentConfig,
+  apiKey: string,
+): Promise<InstanceType<typeof Box>> {
+  const boxes = await Box.list({ apiKey });
+  const existing = boxes.find((b) => b.name === agent.name);
+
+  if (existing) {
+    const box = await Box.get(existing.id, { apiKey });
+    return box;
+  }
+
+  const provider = agent.provider ?? inferDefaultProvider(agent.model).toString();
+
+  const box = await Box.create({
+    apiKey,
+    name: agent.name,
+    runtime: "node",
+    agent: {
+      provider: provider as any,
+      model: agent.model as any,
+    },
+  });
+
+  return box;
+}
+
+/**
+ * Collect all files from a directory recursively, returning paths
+ * suitable for box.files.upload().
+ */
+export function collectFiles(
+  baseDir: string,
+  subDir: string,
+): { path: string; destination: string }[] {
+  const fullDir = resolve(baseDir, subDir);
+  const files: { path: string; destination: string }[] = [];
+
+  try {
+    const entries = readdirSync(fullDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(fullDir, entry.name);
+      const dest = join("/workspace/home", subDir, entry.name);
+
+      if (entry.isDirectory()) {
+        files.push(
+          ...collectFiles(baseDir, join(subDir, entry.name)),
+        );
+      } else if (entry.name !== ".gitkeep") {
+        files.push({ path: fullPath, destination: dest });
+      }
+    }
+  } catch {
+    // Directory doesn't exist, skip
+  }
+
+  return files;
+}

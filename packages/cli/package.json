@@ -1,0 +1,27 @@
+{
+  "name": "@upstash/ahi",
+  "version": "0.1.0",
+  "description": "Framework for running independent agents",
+  "type": "module",
+  "bin": {
+    "ahi": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@upstash/box": "latest",
+    "commander": "^13.0.0",
+    "dotenv": "^16.4.0",
+    "js-yaml": "^4.1.0",
+    "chalk": "^5.4.0",
+    "ora": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  }
+}
