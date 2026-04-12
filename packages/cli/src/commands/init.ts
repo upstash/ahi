@@ -8,52 +8,121 @@ skills: ./skills/SKILL.md
 agents:
   - name: my-agent
     model: claude-sonnet-4-6
-    schedules:
-      - cron: "0 9 * * *"
-        prompt: "Run the daily task"
-        timeout: 300000
 `;
 
 const SKILL_TEMPLATE = `---
-name: my-skill
-description: Describe what your agent does
+name: notes
+description: Save, review, and clear simple notes for the user
 ---
 
-# Agent Skill
+# Notes Skill
 
 ## Identity
 
-You are an AI agent. Describe your role and purpose here.
+You are a simple note-keeping agent.
+
+Your job is to help the user save short notes to durable storage,
+review what is already saved, and clear the list when asked.
 
 ## Tools
 
-List the tools available and how to use them:
+Save a note:
 
 \`\`\`
-npx tsx /workspace/home/tools/example.ts <args>
+npx tsx /workspace/home/tools/note.ts add <text>
+\`\`\`
+
+List saved notes:
+
+\`\`\`
+npx tsx /workspace/home/tools/note.ts list
+\`\`\`
+
+Clear all notes:
+
+\`\`\`
+npx tsx /workspace/home/tools/note.ts clear
 \`\`\`
 
 ## Process
 
-When you receive a prompt, follow these steps:
+When you receive a prompt, follow these rules:
 
-1. Step one
-2. Step two
-3. Step three
+1. If the user wants to remember something, save it with the note tool.
+2. If the user asks what is saved, list the notes first and then answer.
+3. If the user asks to remove everything, use the clear command.
+4. Keep responses short and explicit about what you saved or retrieved.
 `;
 
-const EXAMPLE_TOOL = `const args = process.argv.slice(2);
-const command = args[0];
+const NOTE_TOOL = `import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { resolve } from "path";
+
+const command = process.argv[2];
+const text = process.argv.slice(3).join(" ").trim();
+
+const dataDir = resolve(process.cwd(), "data");
+const notesPath = resolve(dataDir, "notes.md");
+
+function ensureDataDir() {
+  mkdirSync(dataDir, { recursive: true });
+}
+
+function readNotes() {
+  if (!existsSync(notesPath)) {
+    return [];
+  }
+
+  const content = readFileSync(notesPath, "utf8").trim();
+  if (!content) {
+    return [];
+  }
+
+  return content
+    .split("\\n")
+    .filter(Boolean)
+    .map((line) => line.replace(/^- /, ""));
+}
+
+function writeNotes(notes: string[]) {
+  const content =
+    notes.length > 0 ? notes.map((note) => \`- \${note}\`).join("\\n") + "\\n" : "";
+  writeFileSync(notesPath, content);
+}
+
+ensureDataDir();
 
 switch (command) {
-  case "hello":
-    console.log("Hello from example tool!");
+  case "add": {
+    if (!text) {
+      console.log("Usage: npx tsx tools/note.ts add <text>");
+      process.exit(1);
+    }
+
+    const notes = readNotes();
+    notes.push(text);
+    writeNotes(notes);
+    console.log(\`Saved note \${notes.length}: \${text}\`);
     break;
-  case "time":
-    console.log(new Date().toISOString());
+  }
+
+  case "list": {
+    const notes = readNotes();
+    if (notes.length === 0) {
+      console.log("No notes saved.");
+      break;
+    }
+
+    console.log(notes.map((note, index) => \`\${index + 1}. \${note}\`).join("\\n"));
     break;
+  }
+
+  case "clear":
+    writeNotes([]);
+    console.log("Cleared all notes.");
+    break;
+
   default:
-    console.log("Usage: npx tsx tools/example.ts <hello|time>");
+    console.log("Usage: npx tsx tools/note.ts <add|list|clear> [text]");
 }
 `;
 
@@ -83,13 +152,13 @@ export async function initCommand() {
   writeFileSync(resolve(cwd, "ahi.yaml"), YAML_TEMPLATE);
   writeFileSync(resolve(cwd, ".env.example"), ENV_TEMPLATE);
   writeFileSync(resolve(cwd, "skills", "SKILL.md"), SKILL_TEMPLATE);
-  writeFileSync(resolve(cwd, "tools", "example.ts"), EXAMPLE_TOOL);
+  writeFileSync(resolve(cwd, "tools", "note.ts"), NOTE_TOOL);
   writeFileSync(resolve(cwd, "data", ".gitkeep"), "");
 
   console.log(chalk.green("Initialized Ahi project:"));
   console.log("  ahi.yaml");
   console.log("  .env.example");
-  console.log("  tools/example.ts");
+  console.log("  tools/note.ts");
   console.log("  skills/SKILL.md");
   console.log("  data/");
 }

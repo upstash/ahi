@@ -1,7 +1,7 @@
 {
   "name": "ahi",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "packageManager": "pnpm@10.24.0",
   "scripts": {
     "build": "pnpm -r build",

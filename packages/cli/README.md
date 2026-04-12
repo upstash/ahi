@@ -12,8 +12,16 @@ npm install -g @upstash/ahi
 
 ```bash
 ahi init
-ahi dev "do something useful"
+ahi dev "remember that I prefer concise summaries"
 ahi sync
-ahi run "do something useful"
+ahi run "list the saved notes"
 ahi console
 ```
+
+`ahi init` scaffolds a minimal notes agent with:
+
+- `tools/note.ts`
+- `skills/SKILL.md`
+- `data/`
+
+It does not include schedules by default. For richer scheduled setups, see the root `examples/` folder.

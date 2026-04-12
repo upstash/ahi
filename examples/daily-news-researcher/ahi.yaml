@@ -1,0 +1,10 @@
+tools: ./tools/
+skills: ./skills/SKILL.md
+
+agents:
+  - name: daily-news-researcher
+    model: claude-sonnet-4-6
+    schedules:
+      - cron: "0 14 * * *"
+        prompt: "Research the latest AI news and save today's one-sentence summary."
+        timeout: 300000

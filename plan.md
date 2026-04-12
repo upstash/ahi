@@ -6,6 +6,7 @@ Ahi is an open-source framework for running independent agents in isolated conta
 ## Monorepo Structure
 ```
 ahi/
+├── examples/         # Example agent projects
 ├── packages/
 │   ├── cli/          # @upstash/ahi — global CLI tool
 │   └── console/      # Web UI for monitoring agent servers
@@ -33,10 +34,6 @@ skills: ./skills/SKILL.md
 agents:
   - name: agent-name
     model: claude-opus-4.6
-    schedules:
-      - cron: "30 14 * * 1-5"
-        prompt: "..."
-        timeout: 600000
 ```
 
 ## Console
@@ -60,7 +57,7 @@ Web UI for monitoring agent servers. Shows which agents are running, sleeping, w
    - The user's prompt
    - Working directory set to the project folder
 5. Stream output to terminal
-6. Agent executes tools via shell commands (e.g. `npx tsx tools/trade.ts ...`)
+6. Agent executes tools via shell commands (e.g. `npx tsx tools/note.ts add "remember this"`)
 7. Agent reads/writes `data/` files directly on local filesystem
 
 ## Box SDK API Surface (key methods for Ahi)
@@ -107,9 +104,9 @@ my-project/
 ├── ahi.yaml          # single agent, placeholder model
 ├── .env.example      # example environment variables
 ├── tools/
-│   └── example.ts    # simple example tool
+│   └── note.ts       # simple durable note tool
 ├── skills/
-│   └── SKILL.md      # starter skill template
+│   └── SKILL.md      # starter note-keeper skill
 └── data/             # empty, .gitkeep
 ```
 - Scaffold includes `.env.example` but not a real `.env` file

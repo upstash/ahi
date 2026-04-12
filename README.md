@@ -10,9 +10,9 @@ Ahi implements the **agent server** architecture: instead of building an app ser
 npm install -g @upstash/ahi
 
 ahi init
-ahi dev "do something useful"
+ahi dev "remember that I prefer concise summaries"
 ahi sync
-ahi run "do something useful"
+ahi run "list the saved notes"
 ```
 
 ## Architecture
@@ -38,20 +38,17 @@ my-project/
 ├── ahi.yaml            # Agent definitions and configuration
 ├── .env.example        # Example environment variables
 ├── tools/              # TypeScript files the agent can execute
-│   ├── search.ts
-│   ├── trade.ts
-│   └── portfolio.ts
+│   └── note.ts
 ├── skills/             # Markdown instructions for the agent
 │   └── SKILL.md
 ├── data/               # Durable agent data (persists across runs)
-│   ├── portfolio.json
-│   └── memory.md
+│   └── notes.md
 └── .env                # Your local API keys (optional, not committed)
 ```
 
 ### ahi.yaml
 
-The config file defines your agents, their models, and their schedules.
+The config file defines your agents, their models, and optional schedules.
 
 ```yaml
 tools: ./tools/
@@ -60,10 +57,6 @@ skills: ./skills/SKILL.md
 agents:
   - name: my-agent
     model: claude-sonnet-4-6
-    schedules:
-      - cron: "30 14 * * 1-5"
-        prompt: "Run daily trading analysis"
-        timeout: 600000
 ```
 
 **Fields:**
@@ -101,32 +94,54 @@ agents:
         prompt: "Run daily trading analysis"
 ```
 
+Schedules are optional. The default `ahi init` scaffold omits them on purpose. For a scheduled example project, see [`examples/daily-news-researcher`](./examples/daily-news-researcher).
+
 ### Tools
 
 Tools are TypeScript files that the agent executes via shell commands. They are not imported as modules — the agent runs them with `npx tsx`:
 
 ```bash
-npx tsx tools/trade.ts execute AAPL buy 1000
-npx tsx tools/search.ts "market news today"
-npx tsx tools/prices.ts current AAPL MSFT NVDA
+npx tsx tools/note.ts add "Buy oat milk"
+npx tsx tools/note.ts list
+npx tsx tools/note.ts clear
 ```
 
 A tool is a regular TypeScript script that reads arguments from `process.argv` and writes output to `stdout`:
 
 ```ts
-// tools/example.ts
-const args = process.argv.slice(2);
-const command = args[0];
+// tools/note.ts
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { resolve } from "path";
+
+const command = process.argv[2];
+const text = process.argv.slice(3).join(" ").trim();
+const notesPath = resolve(process.cwd(), "data", "notes.md");
+
+function readNotes() {
+  if (!existsSync(notesPath)) {
+    return [];
+  }
+
+  const content = readFileSync(notesPath, "utf8").trim();
+  return content ? content.split("\n").map((line) => line.replace(/^- /, "")) : [];
+}
+
+mkdirSync(resolve(process.cwd(), "data"), { recursive: true });
 
 switch (command) {
-  case "hello":
-    console.log("Hello from example tool!");
+  case "add":
+    writeFileSync(notesPath, [...readNotes(), text].map((note) => `- ${note}`).join("\n") + "\n");
+    console.log(`Saved note: ${text}`);
     break;
-  case "time":
-    console.log(new Date().toISOString());
+  case "list":
+    console.log(readNotes().join("\n"));
+    break;
+  case "clear":
+    writeFileSync(notesPath, "");
+    console.log("Cleared all notes.");
     break;
   default:
-    console.log("Usage: npx tsx tools/example.ts <hello|time>");
+    console.log("Usage: npx tsx tools/note.ts <add|list|clear> [text]");
 }
 ```
 
@@ -138,37 +153,32 @@ A skill is a Markdown file that teaches the agent how to behave and which tools 
 
 ```markdown
 ---
-name: trading
-description: Execute the daily virtual trading process
+name: notes
+description: Save, review, and clear simple notes for the user
 ---
 
-# Trading Skill
+# Notes Skill
 
 ## Identity
 
-You are a virtual portfolio manager. Your goal is to maximize
-portfolio value through research-driven trading decisions.
+You are a simple note-keeping agent.
 
 ## Tools
 
-Get current portfolio state:
+Save a note:
 \`\`\`
-npx tsx /workspace/home/tools/portfolio.ts get
-\`\`\`
-
-Execute a trade:
-\`\`\`
-npx tsx /workspace/home/tools/trade.ts execute <TICKER> buy <amount>
+npx tsx /workspace/home/tools/note.ts add <text>
 \`\`\`
 
-## Process
+List saved notes:
+\`\`\`
+npx tsx /workspace/home/tools/note.ts list
+\`\`\`
 
-1. Update prices
-2. Review portfolio
-3. Research market news
-4. Make trades
-5. Write diary entry
-6. Save snapshot
+Clear all notes:
+\`\`\`
+npx tsx /workspace/home/tools/note.ts clear
+\`\`\`
 ```
 
 The skill tells the agent *what* it is, *what tools* it has, and *what steps* to follow. The agent figures out the rest.
@@ -177,15 +187,13 @@ The skill tells the agent *what* it is, *what tools* it has, and *what steps* to
 
 ### Data
 
-The `data/` directory stores durable files the agent reads and writes — portfolios, diaries, memory, snapshots. These files persist across runs and survive tool/skill updates.
+The `data/` directory stores durable files the agent reads and writes. These files persist across runs and survive tool/skill updates.
 
 Data files are typically JSON or Markdown:
 
 ```
 data/
-├── portfolio.json    # Agent's state
-├── diary.md          # Log of past actions
-└── memory.md         # Accumulated knowledge
+└── notes.md          # Saved notes written by the note tool
 ```
 
 You don't manage these files. The agent creates and updates them as part of its process.
@@ -203,17 +211,27 @@ ahi init
 Creates:
 - `ahi.yaml` — default config with one agent
 - `.env.example` — example environment variables
-- `tools/example.ts` — sample tool
-- `skills/SKILL.md` — skill template
+- `tools/note.ts` — sample note tool
+- `skills/SKILL.md` — sample note-keeper skill
 - `data/.gitkeep` — empty data directory
+
+The generated starter is intentionally unscheduled. It is meant to show the smallest useful `tool + skill + data` loop first.
+
+After `ahi init`, you can inspect the generated starter and run a full local loop:
+
+```bash
+ahi dev "remember that I prefer concise summaries"
+cat data/notes.md
+ahi dev "what do you remember?"
+```
 
 ### `ahi dev <prompt>`
 
 Run an agent locally for fast iteration. No Box involved — the agent runs on your machine using a locally installed agent CLI.
 
 ```bash
-ahi dev "run daily trading analysis"
-ahi dev --agent trader-claude "test the search tool"
+ahi dev "remember that I prefer concise summaries"
+ahi dev --agent my-agent "what do you remember?"
 ```
 
 **Options:**
@@ -259,8 +277,8 @@ npm install -g opencode
 Run an agent remotely on its Box. The agent executes in the cloud environment with its synced tools, skills, and data.
 
 ```bash
-ahi run "run daily trading analysis"
-ahi run --agent trader-gemini "check portfolio status"
+ahi run "list the saved notes"
+ahi run --agent my-agent "clear all saved notes"
 ```
 
 **Options:**
@@ -409,6 +427,12 @@ Every weekday at 9:30 AM ET, each agent wakes up, reads the news, analyzes its p
 
 - [Live dashboard](https://botstreet.vercel.app)
 - [Source code](https://github.com/upstash/botstreet)
+
+## Examples
+
+The repo includes richer examples under [`examples/`](./examples):
+
+- [`examples/daily-news-researcher`](./examples/daily-news-researcher) — scheduled research agent that saves a one-sentence summary each day
 
 ## Stack
 
