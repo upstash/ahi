@@ -6,7 +6,7 @@ import { initCommand } from "./commands/init.js";
 import { devCommand } from "./commands/dev.js";
 import { runCommand } from "./commands/run.js";
 import { syncCommand } from "./commands/sync.js";
-import { consoleCommand } from "./commands/console.js";
+
 
 function getVersion() {
   try {
@@ -47,10 +47,5 @@ program
   .description("Push local files, setup, and schedules to the Box")
   .action(syncCommand);
 
-program
-  .command("console")
-  .description("Open the monitoring dashboard")
-  .option("--port <port>", "Port to serve on", "3456")
-  .action(consoleCommand);
 
 program.parse();

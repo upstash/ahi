@@ -30,7 +30,7 @@ export async function consoleCommand(options: ConsoleOptions) {
   console.log(chalk.dim(`http://localhost:${options.port}`));
   console.log();
 
-  const child = spawn("node", ["build/index.js"], {
+  const child = spawn("node", ["index.js"], {
     cwd: consolePath,
     stdio: "inherit",
     env: {
