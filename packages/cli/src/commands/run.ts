@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import ora from "ora";
 import { loadConfig, loadEnv, resolveAgent } from "../config.js";
-import { getOrCreateBox } from "../box.js";
+import { getBox } from "../box.js";
 
 interface RunOptions {
   agent?: string;
@@ -23,7 +23,12 @@ export async function runCommand(prompt: string, options: RunOptions) {
   const spinner = ora(`Connecting to box "${agent.name}"...`).start();
 
   try {
-    const box = await getOrCreateBox(agent, apiKey);
+    const box = await getBox(agent.name, apiKey);
+    if (!box) {
+      spinner.stop();
+      console.error(chalk.red(`Box "${agent.name}" not found. Run ${chalk.bold("ahi sync")} first.`));
+      process.exit(1);
+    }
     await box.cd("/workspace/home");
     spinner.text = `Running prompt on "${agent.name}"...`;
     spinner.stop();

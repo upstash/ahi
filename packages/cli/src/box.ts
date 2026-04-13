@@ -4,6 +4,23 @@ import { readdirSync, existsSync } from "fs";
 import { resolve, relative, join } from "path";
 
 /**
+ * Find an existing box by agent name. Returns null if not found.
+ */
+export async function getBox(
+  agentName: string,
+  apiKey: string,
+): Promise<InstanceType<typeof Box> | null> {
+  const boxes = await Box.list({ apiKey });
+  const existing = boxes.find((b) => b.name === agentName);
+
+  if (!existing) {
+    return null;
+  }
+
+  return Box.get(existing.id, { apiKey });
+}
+
+/**
  * Find a box by agent name or create one.
  */
 export async function getOrCreateBox(

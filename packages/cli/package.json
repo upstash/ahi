@@ -1,6 +1,6 @@
 {
   "name": "@upstash/ahi",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "description": "Framework for running independent agents",
   "type": "module",
   "bin": {
