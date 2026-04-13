@@ -4,29 +4,35 @@ A framework for running independent agents in isolated containers. Each agent ge
 
 Ahi implements the **agent server** architecture: instead of building an app server with routes, handlers, and orchestration code, you define agents as a folder structure and a config file. Ahi handles the rest.
 
-
 ## Quick Start
 
 ```bash
 npm install -g @upstash/ahi
 
 ahi init
-ahi dev "remember that I prefer concise summaries"
+ahi dev "add a note - tomorrow is her birthday"
+
+# Set your Upstash Box API key for remote commands (sync, run, console)
+export UPSTASH_BOX_API_KEY=your-box-api-key
+
 ahi sync
+ahi run "add a note - send flowers tomorrow"
 ahi run "list the saved notes"
 ```
+
+> Get your Box API key from the [Upstash Console](https://console.upstash.com).
 
 ## Architecture
 
 An agent server replaces traditional app servers with five primitives:
 
-| Primitive | What it is |
-|-----------|------------|
-| **Agent** | The LLM. It reasons, decides, and acts. |
-| **Tools** | TypeScript files that do work for the agent. |
-| **Skills** | Markdown instructions that teach the agent how to use tools. |
-| **Data** | Durable MD/JSON files. The agent's memory. Persists across runs. |
-| **Schedules** | Cron for prompts, not code. |
+| Primitive     | What it is                                                       |
+| ------------- | ---------------------------------------------------------------- |
+| **Agent**     | The LLM. It reasons, decides, and acts.                          |
+| **Tools**     | TypeScript files that do work for the agent.                     |
+| **Skills**    | Markdown instructions that teach the agent how to use tools.     |
+| **Data**      | Durable MD/JSON files. The agent's memory. Persists across runs. |
+| **Schedules** | Cron for prompts, not code.                                      |
 
 Each agent runs in its own [Upstash Box](https://upstash.com/docs/box/overall/quickstart) — an isolated container with persistent storage that sleeps when idle and wakes instantly.
 
@@ -64,19 +70,19 @@ agents:
 
 **Fields:**
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `tools` | Yes | Path to the tools directory. |
-| `skills` | Yes | Path to the skill file (Markdown). |
-| `setup` | No | Shell commands to run on the Box during `ahi sync` after files upload. |
-| `agents` | Yes | List of agent definitions. |
-| `agents[].name` | Yes | Unique name for the agent. Used as the Box name. |
-| `agents[].model` | Yes | Model identifier (see [Models](#models)). |
-| `agents[].provider` | No | Agent CLI to use. Inferred from model if omitted. |
-| `agents[].schedules` | No | List of cron schedules. |
-| `agents[].schedules[].cron` | Yes | Standard 5-field cron expression (UTC). |
-| `agents[].schedules[].prompt` | Yes | The prompt to send to the agent. |
-| `agents[].schedules[].timeout` | No | Timeout in milliseconds. |
+| Field                          | Required | Description                                                            |
+| ------------------------------ | -------- | ---------------------------------------------------------------------- |
+| `tools`                        | Yes      | Path to the tools directory.                                           |
+| `skills`                       | Yes      | Path to the skill file (Markdown).                                     |
+| `setup`                        | No       | Shell commands to run on the Box during `ahi sync` after files upload. |
+| `agents`                       | Yes      | List of agent definitions.                                             |
+| `agents[].name`                | Yes      | Unique name for the agent. Used as the Box name.                       |
+| `agents[].model`               | Yes      | Model identifier (see [Models](#models)).                              |
+| `agents[].provider`            | No       | Agent CLI to use. Inferred from model if omitted.                      |
+| `agents[].schedules`           | No       | List of cron schedules.                                                |
+| `agents[].schedules[].cron`    | Yes      | Standard 5-field cron expression (UTC).                                |
+| `agents[].schedules[].prompt`  | Yes      | The prompt to send to the agent.                                       |
+| `agents[].schedules[].timeout` | No       | Timeout in milliseconds.                                               |
 
 You can define multiple agents in a single project. Each agent gets its own Box:
 
@@ -145,14 +151,19 @@ function readNotes() {
   }
 
   const content = readFileSync(notesPath, "utf8").trim();
-  return content ? content.split("\n").map((line) => line.replace(/^- /, "")) : [];
+  return content
+    ? content.split("\n").map((line) => line.replace(/^- /, ""))
+    : [];
 }
 
 mkdirSync(resolve(process.cwd(), "data"), { recursive: true });
 
 switch (command) {
   case "add":
-    writeFileSync(notesPath, [...readNotes(), text].map((note) => `- ${note}`).join("\n") + "\n");
+    writeFileSync(
+      notesPath,
+      [...readNotes(), text].map((note) => `- ${note}`).join("\n") + "\n",
+    );
     console.log(`Saved note: ${text}`);
     break;
   case "list":
@@ -203,7 +214,7 @@ npx tsx /workspace/home/tools/note.ts clear
 \`\`\`
 ```
 
-The skill tells the agent *what* it is, *what tools* it has, and *what steps* to follow. The agent figures out the rest.
+The skill tells the agent _what_ it is, _what tools_ it has, and _what steps_ to follow. The agent figures out the rest.
 
 > **Note:** In the remote Box environment, tools are at `/workspace/home/tools/`. When running locally with `ahi dev`, the agent executes from your project directory, so use relative paths in your skill or let the agent resolve them.
 
@@ -231,6 +242,7 @@ ahi init
 ```
 
 Creates:
+
 - `ahi.yaml` — default config with one agent
 - `.env.example` — example environment variables
 - `tools/note.ts` — sample note tool
@@ -258,8 +270,8 @@ ahi dev --agent my-agent "what do you remember?"
 
 **Options:**
 
-| Flag | Description |
-|------|-------------|
+| Flag             | Description                                            |
+| ---------------- | ------------------------------------------------------ |
 | `--agent <name>` | Agent name from ahi.yaml. Defaults to the first agent. |
 
 **How it works:**
@@ -288,11 +300,11 @@ npm install -g opencode
 
 **Environment variables:**
 
-| Variable | Required for |
-|----------|-------------|
+| Variable            | Required for  |
+| ------------------- | ------------- |
 | `ANTHROPIC_API_KEY` | Claude models |
-| `OPENAI_API_KEY` | OpenAI models |
-| `GOOGLE_API_KEY` | Gemini models |
+| `OPENAI_API_KEY`    | OpenAI models |
+| `GOOGLE_API_KEY`    | Gemini models |
 
 ### `ahi run <prompt>`
 
@@ -305,8 +317,8 @@ ahi run --agent my-agent "clear all saved notes"
 
 **Options:**
 
-| Flag | Description |
-|------|-------------|
+| Flag             | Description                                            |
+| ---------------- | ------------------------------------------------------ |
 | `--agent <name>` | Agent name from ahi.yaml. Defaults to the first agent. |
 
 **How it works:**
@@ -317,9 +329,9 @@ ahi run --agent my-agent "clear all saved notes"
 
 **Environment variables:**
 
-| Variable | Required |
-|----------|----------|
-| `UPSTASH_BOX_API_KEY` | Yes |
+| Variable              | Required |
+| --------------------- | -------- |
+| `UPSTASH_BOX_API_KEY` | Yes      |
 
 ### `ahi sync`
 
@@ -344,19 +356,19 @@ Sync processes all agents. Each agent gets its own Box (matched by agent name).
 
 **Environment variables:**
 
-| Variable | Required |
-|----------|----------|
-| `UPSTASH_BOX_API_KEY` | Yes |
+| Variable              | Required |
+| --------------------- | -------- |
+| `UPSTASH_BOX_API_KEY` | Yes      |
 
 **Lifecycle examples:**
 
-| Change | Command | Effect |
-|--------|---------|--------|
-| Fix a bug in a tool | `ahi sync` | Tool files upload. Data stays untouched. |
-| Add a dependency | Edit `package.json` or lockfile, `ahi sync` | Manifest files upload and `setup` reruns on the Box. |
-| Rewrite the agent's strategy | Edit SKILL.md, `ahi sync` | Same tools, same data, new behavior. |
-| Switch from Claude to Gemini | Edit ahi.yaml, `ahi sync` | Future runs use the updated config. |
-| Change a schedule | Edit ahi.yaml, `ahi sync` | Old schedules removed, new ones created. |
+| Change                       | Command                                     | Effect                                               |
+| ---------------------------- | ------------------------------------------- | ---------------------------------------------------- |
+| Fix a bug in a tool          | `ahi sync`                                  | Tool files upload. Data stays untouched.             |
+| Add a dependency             | Edit `package.json` or lockfile, `ahi sync` | Manifest files upload and `setup` reruns on the Box. |
+| Rewrite the agent's strategy | Edit SKILL.md, `ahi sync`                   | Same tools, same data, new behavior.                 |
+| Switch from Claude to Gemini | Edit ahi.yaml, `ahi sync`                   | Future runs use the updated config.                  |
+| Change a schedule            | Edit ahi.yaml, `ahi sync`                   | Old schedules removed, new ones created.             |
 
 ### `ahi console`
 
@@ -369,9 +381,9 @@ ahi console --port 8080
 
 **Options:**
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--port <port>` | `3456` | Port to serve on. |
+| Flag            | Default | Description       |
+| --------------- | ------- | ----------------- |
+| `--port <port>` | `3456`  | Port to serve on. |
 
 Opens a web UI at `http://localhost:<port>` with:
 
@@ -384,20 +396,20 @@ Opens a web UI at `http://localhost:<port>` with:
 
 **Environment variables:**
 
-| Variable | Required |
-|----------|----------|
-| `UPSTASH_BOX_API_KEY` | Yes |
+| Variable              | Required |
+| --------------------- | -------- |
+| `UPSTASH_BOX_API_KEY` | Yes      |
 
 ## Models
 
 Ahi infers the agent CLI (provider) from the model name. You can also set `provider` explicitly in `ahi.yaml`.
 
-| Model prefix | Provider | Agent CLI | Example |
-|-------------|----------|-----------|---------|
-| `claude-*` | claude | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `claude-opus-4-6`, `claude-sonnet-4-6` |
-| `gpt-*` | openai | [Codex](https://github.com/openai/codex) | `gpt-5.3-codex`, `gpt-5.2-codex` |
-| `gemini-*` | gemini | — | `gemini-3.1-pro` |
-| `opencode/*` | opencode | [OpenCode](https://github.com/opencode-ai/opencode) | `opencode/claude-sonnet-4-6` |
+| Model prefix | Provider | Agent CLI                                                     | Example                                |
+| ------------ | -------- | ------------------------------------------------------------- | -------------------------------------- |
+| `claude-*`   | claude   | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `claude-opus-4-6`, `claude-sonnet-4-6` |
+| `gpt-*`      | openai   | [Codex](https://github.com/openai/codex)                      | `gpt-5.3-codex`, `gpt-5.2-codex`       |
+| `gemini-*`   | gemini   | —                                                             | `gemini-3.1-pro`                       |
+| `opencode/*` | opencode | [OpenCode](https://github.com/opencode-ai/opencode)           | `opencode/claude-sonnet-4-6`           |
 
 ## Environment Variables
 
@@ -459,12 +471,12 @@ The repo includes richer examples under [`examples/`](./examples):
 
 ## Stack
 
-| Layer | Name | What it is |
-|-------|------|------------|
-| Architecture | Agent server | The idea — five primitives, no app code |
-| Framework | Ahi | Conventions, CLI, console |
-| Infrastructure | [Upstash Box](https://upstash.com/docs/box/overall/quickstart) | Containers, storage, scheduling |
-| SDK | [@upstash/box](https://www.npmjs.com/package/@upstash/box) | Low-level programmatic access |
+| Layer          | Name                                                           | What it is                              |
+| -------------- | -------------------------------------------------------------- | --------------------------------------- |
+| Architecture   | Agent server                                                   | The idea — five primitives, no app code |
+| Framework      | Ahi                                                            | Conventions, CLI, console               |
+| Infrastructure | [Upstash Box](https://upstash.com/docs/box/overall/quickstart) | Containers, storage, scheduling         |
+| SDK            | [@upstash/box](https://www.npmjs.com/package/@upstash/box)     | Low-level programmatic access           |
 
 ## Development
 

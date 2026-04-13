@@ -53,6 +53,9 @@ export async function syncCommand() {
         spinner.warn("No files to upload");
       }
 
+      // Ensure data directory exists on the Box
+      await box.exec.command("mkdir -p /workspace/home/data");
+
       if (config.setup && config.setup.length > 0) {
         const setupSpinner = ora("Running setup...").start();
 
@@ -89,6 +92,7 @@ export async function syncCommand() {
           cron: schedule.cron,
           prompt: schedule.prompt,
           timeout: schedule.timeout,
+          folder: "home",
         });
       }
 

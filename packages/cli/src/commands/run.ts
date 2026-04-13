@@ -24,6 +24,7 @@ export async function runCommand(prompt: string, options: RunOptions) {
 
   try {
     const box = await getOrCreateBox(agent, apiKey);
+    await box.cd("/workspace/home");
     spinner.text = `Running prompt on "${agent.name}"...`;
     spinner.stop();
 
