@@ -37,6 +37,8 @@ An Ahi project is a folder with this layout:
 my-project/
 ├── ahi.yaml            # Agent definitions and configuration
 ├── .env.example        # Example environment variables
+├── package.json        # Optional project dependencies for remote setup
+├── pnpm-lock.yaml      # Optional lockfile for reproducible installs
 ├── tools/              # TypeScript files the agent can execute
 │   └── note.ts
 ├── skills/             # Markdown instructions for the agent
@@ -48,7 +50,7 @@ my-project/
 
 ### ahi.yaml
 
-The config file defines your agents, their models, and optional schedules.
+The config file defines your agents, their models, optional setup commands, and optional schedules.
 
 ```yaml
 tools: ./tools/
@@ -65,6 +67,7 @@ agents:
 |-------|----------|-------------|
 | `tools` | Yes | Path to the tools directory. |
 | `skills` | Yes | Path to the skill file (Markdown). |
+| `setup` | No | Shell commands to run on the Box during `ahi sync` after files upload. |
 | `agents` | Yes | List of agent definitions. |
 | `agents[].name` | Yes | Unique name for the agent. Used as the Box name. |
 | `agents[].model` | Yes | Model identifier (see [Models](#models)). |
@@ -95,6 +98,24 @@ agents:
 ```
 
 Schedules are optional. The default `ahi init` scaffold omits them on purpose. For a scheduled example project, see [`examples/daily-news-researcher`](./examples/daily-news-researcher).
+
+If your tools need project dependencies, add a `setup` block. During `ahi sync`, Ahi uploads common Node manifest files like `package.json`, lockfiles, `tsconfig.json`, and `.npmrc`, then runs your setup commands inside `/workspace/home`.
+
+```yaml
+tools: ./tools/
+skills: ./skills/SKILL.md
+
+setup:
+  - pnpm install --frozen-lockfile
+
+agents:
+  - name: my-agent
+    model: claude-sonnet-4-6
+```
+
+Setup commands currently run on every `ahi sync`.
+
+This is currently aimed at standard Node dependency installs. If your setup command depends on additional custom root files, Ahi does not sync those automatically yet.
 
 ### Tools
 
@@ -301,7 +322,7 @@ ahi run --agent my-agent "clear all saved notes"
 
 ### `ahi sync`
 
-Push local files and schedules to the Box for all agents defined in `ahi.yaml`.
+Push local files, setup, and schedules to the Box for all agents defined in `ahi.yaml`.
 
 ```bash
 ahi sync
@@ -309,9 +330,9 @@ ahi sync
 
 **What it syncs:**
 
-1. **Files** — uploads everything in `tools/`, `skills/`, and `ahi.yaml` to each agent's Box
-2. **Schedules** — deletes all existing schedules on each Box and recreates them from `ahi.yaml`
-3. **Model** — configures the model on the Box if changed
+1. **Files** — uploads everything in `tools/`, `skills/`, `ahi.yaml`, and common root runtime files like `package.json`, lockfiles, `tsconfig.json`, and `.npmrc`
+2. **Setup** — runs each command in the optional top-level `setup` array from `ahi.yaml` inside `/workspace/home`
+3. **Schedules** — deletes all existing schedules on each Box and recreates them from `ahi.yaml`
 
 Sync processes all agents. Each agent gets its own Box (matched by agent name).
 
@@ -330,9 +351,10 @@ Sync processes all agents. Each agent gets its own Box (matched by agent name).
 
 | Change | Command | Effect |
 |--------|---------|--------|
-| Fix a bug in a tool | `ahi sync` | Only that file uploads. Data untouched. |
+| Fix a bug in a tool | `ahi sync` | Tool files upload. Data stays untouched. |
+| Add a dependency | Edit `package.json` or lockfile, `ahi sync` | Manifest files upload and `setup` reruns on the Box. |
 | Rewrite the agent's strategy | Edit SKILL.md, `ahi sync` | Same tools, same data, new behavior. |
-| Switch from Claude to Gemini | Edit ahi.yaml, `ahi sync` | Tools, skills, data stay untouched. |
+| Switch from Claude to Gemini | Edit ahi.yaml, `ahi sync` | Future runs use the updated config. |
 | Change a schedule | Edit ahi.yaml, `ahi sync` | Old schedules removed, new ones created. |
 
 ### `ahi console`

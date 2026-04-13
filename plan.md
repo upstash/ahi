@@ -30,6 +30,8 @@ ahi/
 ```yaml
 tools: ./tools/
 skills: ./skills/SKILL.md
+setup:
+  - pnpm install --frozen-lockfile
 
 agents:
   - name: agent-name
@@ -75,7 +77,8 @@ Web UI for monitoring agent servers. Shows which agents are running, sleeping, w
 1. Read `ahi.yaml` and `.env`
 2. For each agent in `ahi.yaml`:
    - Get or create the Box (by name)
-   - Upload all files: `tools/`, `skills/`, `ahi.yaml`
+   - Upload all files: `tools/`, `skills/`, `ahi.yaml`, and common runtime manifests
+   - Run setup commands from `ahi.yaml` if present
    - Delete all existing schedules on the Box
    - Create new schedules from `ahi.yaml` agent config
    - Configure model if changed

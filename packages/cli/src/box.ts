@@ -1,6 +1,6 @@
 import { Box, inferDefaultProvider } from "@upstash/box";
 import type { AgentConfig } from "./config.js";
-import { readdirSync, statSync } from "fs";
+import { readdirSync, existsSync } from "fs";
 import { resolve, relative, join } from "path";
 
 /**
@@ -63,4 +63,17 @@ export function collectFiles(
   }
 
   return files;
+}
+
+export function collectRootFiles(
+  baseDir: string,
+  filenames: string[],
+): { path: string; destination: string }[] {
+  return filenames
+    .map((filename) => resolve(baseDir, filename))
+    .filter((fullPath) => existsSync(fullPath))
+    .map((fullPath) => ({
+      path: fullPath,
+      destination: join("/workspace/home", relative(baseDir, fullPath)),
+    }));
 }

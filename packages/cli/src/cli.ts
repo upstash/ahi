@@ -44,7 +44,7 @@ program
 
 program
   .command("sync")
-  .description("Push local files and schedules to the Box")
+  .description("Push local files, setup, and schedules to the Box")
   .action(syncCommand);
 
 program

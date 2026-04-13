@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from "fs";
-import { resolve, dirname } from "path";
+import { resolve } from "path";
 import yaml from "js-yaml";
 import { config as loadDotenv } from "dotenv";
 
@@ -19,6 +19,7 @@ export interface AgentConfig {
 export interface AhiConfig {
   tools: string;
   skills: string;
+  setup?: string[];
   agents: AgentConfig[];
 }
 
@@ -35,6 +36,10 @@ export function loadConfig(cwd: string = process.cwd()): AhiConfig {
 
   if (!config.agents || config.agents.length === 0) {
     throw new Error("ahi.yaml must define at least one agent");
+  }
+
+  if (config.setup && !Array.isArray(config.setup)) {
+    throw new Error("ahi.yaml field \"setup\" must be an array of commands");
   }
 
   return config;
