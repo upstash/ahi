@@ -4,7 +4,7 @@ A framework for running independent agents in isolated containers. Each agent ge
 
 Ahi implements the **agent server** architecture: instead of building an app server with routes, handlers, and orchestration code, you define agents as a folder structure and a config file. Ahi handles the rest.
 
-<img width="1440" height="1267" alt="image" src="https://github.com/user-attachments/assets/48bcc0a5-ba5d-4403-a276-c6f8a675bb69" />
+<img width="720" height="633" alt="image" src="https://github.com/user-attachments/assets/48bcc0a5-ba5d-4403-a276-c6f8a675bb69" />
 
 
 ## Quick Start
