@@ -59,6 +59,7 @@ program
   .command("push")
   .description("Upload local data/ to the Box")
   .option("--agent <name>", "Agent name from ahi.yaml")
+  .option("--all", "Push to all agents")
   .action(pushCommand);
 
 program.parse();

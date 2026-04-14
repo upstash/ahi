@@ -126,10 +126,10 @@ switch (command) {
 }
 `;
 
-const ENV_TEMPLATE = `# Required for ahi sync, ahi run, and ahi console
+const ENV_TEMPLATE = `# Required for ahi sync, run, pull, push
 UPSTASH_BOX_API_KEY=
 
-# Required for ahi dev, depending on the model/provider you use
+# Required for ahi dev and passed to the box on sync
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 GOOGLE_API_KEY=

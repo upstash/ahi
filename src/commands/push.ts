@@ -2,11 +2,13 @@ import { resolve } from "path";
 import { existsSync } from "fs";
 import chalk from "chalk";
 import ora from "ora";
-import { loadConfig, loadEnv, resolveAgent } from "../config.js";
+import { loadConfig, loadEnv, resolveAgentStrict } from "../config.js";
+import type { AgentConfig } from "../config.js";
 import { getBox, collectFiles } from "../box.js";
 
 interface PushOptions {
   agent?: string;
+  all?: boolean;
 }
 
 export async function pushCommand(options: PushOptions) {
@@ -14,7 +16,6 @@ export async function pushCommand(options: PushOptions) {
   loadEnv(cwd);
 
   const config = loadConfig(cwd);
-  const agent = resolveAgent(config, options.agent);
 
   const apiKey = process.env.UPSTASH_BOX_API_KEY;
   if (!apiKey) {
@@ -28,29 +29,35 @@ export async function pushCommand(options: PushOptions) {
     process.exit(1);
   }
 
-  const spinner = ora(`Connecting to box "${agent.name}"...`).start();
+  const agents: AgentConfig[] = options.all
+    ? config.agents
+    : [resolveAgentStrict(config, options.agent)];
 
-  try {
-    const box = await getBox(agent.name, apiKey);
-    if (!box) {
-      spinner.fail(`Box "${agent.name}" not found. Run ${chalk.bold("ahi sync")} first.`);
+  for (const agent of agents) {
+    const spinner = ora(`Connecting to box "${agent.name}"...`).start();
+
+    try {
+      const box = await getBox(agent.name, apiKey);
+      if (!box) {
+        spinner.fail(`Box "${agent.name}" not found. Run ${chalk.bold("ahi sync")} first.`);
+        process.exit(1);
+      }
+
+      spinner.text = "Collecting data files...";
+      const files = collectFiles(cwd, "data");
+
+      if (files.length === 0) {
+        spinner.warn("No files found in data/");
+        return;
+      }
+
+      spinner.text = `Uploading ${files.length} file(s)...`;
+      await box.files.upload(files);
+
+      spinner.succeed(`Pushed ${files.length} file(s) to "${agent.name}"`);
+    } catch (err: any) {
+      spinner.fail(err.message);
       process.exit(1);
     }
-
-    spinner.text = "Collecting data files...";
-    const files = collectFiles(cwd, "data");
-
-    if (files.length === 0) {
-      spinner.warn("No files found in data/");
-      return;
-    }
-
-    spinner.text = `Uploading ${files.length} file(s)...`;
-    await box.files.upload(files);
-
-    spinner.succeed(`Pushed ${files.length} file(s) to "${agent.name}"`);
-  } catch (err: any) {
-    spinner.fail(err.message);
-    process.exit(1);
   }
 }

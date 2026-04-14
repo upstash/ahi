@@ -2,7 +2,7 @@ import { resolve, dirname } from "path";
 import { mkdirSync, writeFileSync } from "fs";
 import chalk from "chalk";
 import ora from "ora";
-import { loadConfig, loadEnv, resolveAgent } from "../config.js";
+import { loadConfig, loadEnv, resolveAgentStrict } from "../config.js";
 import { getBox } from "../box.js";
 
 interface PullOptions {
@@ -14,7 +14,7 @@ export async function pullCommand(options: PullOptions) {
   loadEnv(cwd);
 
   const config = loadConfig(cwd);
-  const agent = resolveAgent(config, options.agent);
+  const agent = resolveAgentStrict(config, options.agent);
 
   const apiKey = process.env.UPSTASH_BOX_API_KEY;
   if (!apiKey) {

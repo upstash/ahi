@@ -14,6 +14,7 @@ npm install -g @upstash/ahi
 
 ```bash
 ahi init                          # scaffold project structure
+cp .env.example .env              # add your API keys
 ahi dev "remember to buy milk"    # run agent locally
 ahi sync                          # push to the box
 ahi run "list my notes"           # run remotely
@@ -28,6 +29,18 @@ my-project/
 ├── tools/            # scripts agents execute
 ├── skills/           # markdown instructions (system prompts)
 └── data/             # durable files managed by the agent
+```
+
+## .env.example
+
+```bash
+# Required for ahi sync, run, pull, push
+UPSTASH_BOX_API_KEY=
+
+# Required for ahi dev and passed to the box on sync
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
+GOOGLE_API_KEY=
 ```
 
 ## ahi.yaml

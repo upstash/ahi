@@ -75,6 +75,20 @@ export function resolveAgent(
 }
 
 /**
+ * Resolve an agent by name, requiring explicit selection when multiple agents exist.
+ */
+export function resolveAgentStrict(
+  config: AhiConfig,
+  agentName?: string,
+): AgentConfig {
+  if (config.agents.length > 1 && !agentName) {
+    const names = config.agents.map((a) => a.name).join(", ");
+    throw new Error(`Multiple agents defined. Use --agent <name> to select one. Available: ${names}`);
+  }
+  return resolveAgent(config, agentName);
+}
+
+/**
  * Infer the provider from a model string.
  */
 export function inferProvider(model: string): string {
