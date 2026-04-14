@@ -6,6 +6,8 @@ import { initCommand } from "./commands/init.js";
 import { devCommand } from "./commands/dev.js";
 import { runCommand } from "./commands/run.js";
 import { syncCommand } from "./commands/sync.js";
+import { pullCommand } from "./commands/pull.js";
+import { pushCommand } from "./commands/push.js";
 
 
 function getVersion() {
@@ -47,5 +49,16 @@ program
   .description("Push local files, setup, and schedules to the Box")
   .action(syncCommand);
 
+program
+  .command("pull")
+  .description("Download data/ from the Box to local")
+  .option("--agent <name>", "Agent name from ahi.yaml")
+  .action(pullCommand);
+
+program
+  .command("push")
+  .description("Upload local data/ to the Box")
+  .option("--agent <name>", "Agent name from ahi.yaml")
+  .action(pushCommand);
 
 program.parse();
