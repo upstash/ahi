@@ -1,7 +1,8 @@
 import { resolve } from "path";
+import { existsSync } from "fs";
 import chalk from "chalk";
 import ora from "ora";
-import { loadConfig, loadEnv } from "../config.js";
+import { loadConfig, loadEnv, inferProvider } from "../config.js";
 import { getOrCreateBox, collectFiles, collectRootFiles } from "../box.js";
 
 const ROOT_RUNTIME_FILES = [
@@ -53,6 +54,43 @@ export async function syncCommand() {
         spinner.warn("No files to upload");
       }
 
+      // Write .env inside the box if env vars are configured
+      if (config.env && Object.keys(config.env).length > 0) {
+        const envSpinner = ora("Writing box .env...").start();
+        const envLines: string[] = [];
+        for (const [key, value] of Object.entries(config.env)) {
+          if (value != null) {
+            envLines.push(`${key}=${value}`);
+          } else if (process.env[key]) {
+            envLines.push(`${key}=${process.env[key]}`);
+          }
+        }
+        if (envLines.length > 0) {
+          await box.files.write({
+            path: "/workspace/home/.env",
+            content: envLines.join("\n") + "\n",
+          });
+          envSpinner.succeed(`Wrote ${envLines.length} env var(s) to box`);
+        } else {
+          envSpinner.warn("No env values found in local environment");
+        }
+      }
+
+      // Copy skill to provider-specific root paths so agents auto-load it
+      const provider = agent.provider ?? inferProvider(agent.model);
+      const skillFilePath = resolve(cwd, config.skills);
+      if (existsSync(skillFilePath)) {
+        const rootSkillFiles: { path: string; destination: string }[] = [];
+        if (provider === "claude") {
+          rootSkillFiles.push({ path: skillFilePath, destination: "/workspace/home/CLAUDE.md" });
+        } else if (provider === "openai" || provider === "opencode") {
+          rootSkillFiles.push({ path: skillFilePath, destination: "/workspace/home/AGENTS.md" });
+        }
+        if (rootSkillFiles.length > 0) {
+          await box.files.upload(rootSkillFiles);
+        }
+      }
+
       // Ensure data directory exists on the Box
       await box.exec.command("mkdir -p /workspace/home/data");
 
@@ -63,15 +101,11 @@ export async function syncCommand() {
           setupSpinner.text = `Running setup: ${command}`;
           const result = await box.exec.command(`cd /workspace/home && ${command}`);
 
-          if (result.exit_code !== 0) {
+          if (result.exitCode !== 0) {
             setupSpinner.fail(`Setup failed: ${command}`);
 
-            if (result.output) {
-              console.error(result.output);
-            }
-
-            if (result.error) {
-              console.error(result.error);
+            if (result.result) {
+              console.error(result.result);
             }
 
             process.exit(1);

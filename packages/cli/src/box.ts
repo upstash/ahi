@@ -1,5 +1,6 @@
 import { Box, inferDefaultProvider } from "@upstash/box";
 import type { AgentConfig } from "./config.js";
+import { resolveProviderApiKey } from "./config.js";
 import { readdirSync, existsSync } from "fs";
 import { resolve, relative, join } from "path";
 
@@ -37,6 +38,8 @@ export async function getOrCreateBox(
 
   const provider = agent.provider ?? inferDefaultProvider(agent.model).toString();
 
+  const providerApiKey = resolveProviderApiKey(provider);
+
   const box = await Box.create({
     apiKey,
     name: agent.name,
@@ -44,6 +47,7 @@ export async function getOrCreateBox(
     agent: {
       provider: provider as any,
       model: agent.model as any,
+      ...(providerApiKey && { apiKey: providerApiKey }),
     },
   });
 

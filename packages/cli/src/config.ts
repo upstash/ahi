@@ -19,6 +19,7 @@ export interface AgentConfig {
 export interface AhiConfig {
   tools: string;
   skills: string;
+  env?: Record<string, string | null>;
   setup?: string[];
   agents: AgentConfig[];
 }
@@ -82,6 +83,23 @@ export function inferProvider(model: string): string {
   if (model.startsWith("gemini") || model.includes("gemini")) return "gemini";
   if (model.startsWith("opencode/")) return "opencode";
   return "claude";
+}
+
+/**
+ * Resolve the provider API key from environment variables based on provider.
+ */
+export function resolveProviderApiKey(provider: string): string | undefined {
+  switch (provider) {
+    case "claude":
+      return process.env.ANTHROPIC_API_KEY;
+    case "openai":
+      return process.env.OPENAI_API_KEY;
+    case "gemini":
+    case "opencode":
+      return process.env.GOOGLE_API_KEY;
+    default:
+      return undefined;
+  }
 }
 
 /**
