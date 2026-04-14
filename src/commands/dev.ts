@@ -1,10 +1,54 @@
 import { spawn } from "child_process";
 import { resolve } from "path";
 import chalk from "chalk";
-import { loadConfig, loadEnv, resolveAgent, inferProvider, readSkill } from "../config.js";
+import ora from "ora";
+import { loadConfig, loadEnv, resolveAgent, inferProvider, type AgentConfig } from "../config.js";
 
 interface DevOptions {
   agent?: string;
+}
+
+function runAgentLocally(agent: AgentConfig, config: { skills: string }, prompt: string, cwd: string): Promise<{ name: string; output: string; error?: string }> {
+  const provider = agent.provider ?? inferProvider(agent.model);
+  const skillPath = resolve(cwd, config.skills);
+
+  const { cmd, args } = buildAgentCommand({
+    provider,
+    model: agent.model,
+    prompt,
+    skillPath,
+    cwd,
+  });
+
+  return new Promise((resolve) => {
+    const child = spawn(cmd, args, {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env },
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (data) => { stdout += data.toString(); });
+    child.stderr.on("data", (data) => { stderr += data.toString(); });
+
+    child.on("error", (err) => {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        resolve({ name: agent.name, output: "", error: `"${cmd}" not found. Install it first.` });
+      } else {
+        resolve({ name: agent.name, output: "", error: err.message });
+      }
+    });
+
+    child.on("exit", (code) => {
+      if (code !== 0 && stderr) {
+        resolve({ name: agent.name, output: stdout, error: stderr });
+      } else {
+        resolve({ name: agent.name, output: stdout });
+      }
+    });
+  });
 }
 
 export async function devCommand(prompt: string, options: DevOptions) {
@@ -12,9 +56,40 @@ export async function devCommand(prompt: string, options: DevOptions) {
   loadEnv(cwd);
 
   const config = loadConfig(cwd);
-  const agent = resolveAgent(config, options.agent);
+
+  // If a specific agent is requested, run only that one with inherited stdio
+  if (options.agent) {
+    const agent = resolveAgent(config, options.agent);
+    return runSingleAgentDev(agent, config, prompt, cwd);
+  }
+
+  // Run all agents in parallel
+  const agents = config.agents;
+  const spinner = ora(`Running prompt on ${agents.length} agent(s) locally...`).start();
+
+  const results = await Promise.all(
+    agents.map((agent) => runAgentLocally(agent, config, prompt, cwd))
+  );
+  spinner.stop();
+
+  for (const result of results) {
+    console.log(chalk.blue(`\n${"─".repeat(40)}`));
+    console.log(chalk.blue(`Agent: ${chalk.bold(result.name)}`));
+    console.log(chalk.blue("─".repeat(40)));
+
+    if (result.error) {
+      console.error(chalk.red(result.error));
+    }
+    if (result.output) {
+      console.log(result.output);
+    }
+  }
+
+  console.log(chalk.green("\nAll runs complete."));
+}
+
+function runSingleAgentDev(agent: AgentConfig, config: { skills: string }, prompt: string, cwd: string) {
   const provider = agent.provider ?? inferProvider(agent.model);
-  const skillContent = readSkill(cwd, config.skills);
   const skillPath = resolve(cwd, config.skills);
 
   console.log(chalk.blue(`Running agent ${chalk.bold(agent.name)} locally`));
