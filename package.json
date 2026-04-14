@@ -1,6 +1,6 @@
 {
   "name": "@upstash/ahi",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Framework for running independent agents",
   "type": "module",
   "bin": {
@@ -13,6 +13,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "test:e2e": "pnpm build && node --test tests/e2e.test.mjs",
     "prepack": "pnpm build"
   },
   "dependencies": {

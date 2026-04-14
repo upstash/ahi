@@ -11,7 +11,7 @@ interface PushOptions {
   all?: boolean;
 }
 
-export async function pushCommand(options: PushOptions) {
+export async function pushDataCommand(options: PushOptions) {
   const cwd = process.cwd();
   loadEnv(cwd);
 
@@ -39,7 +39,7 @@ export async function pushCommand(options: PushOptions) {
     try {
       const box = await getBox(agent.name, apiKey);
       if (!box) {
-        spinner.fail(`Box "${agent.name}" not found. Run ${chalk.bold("ahi sync")} first.`);
+        spinner.fail(`Box "${agent.name}" not found. Run ${chalk.bold("ahi apply")} first.`);
         process.exit(1);
       }
 
@@ -54,10 +54,12 @@ export async function pushCommand(options: PushOptions) {
       spinner.text = `Uploading ${files.length} file(s)...`;
       await box.files.upload(files);
 
-      spinner.succeed(`Pushed ${files.length} file(s) to "${agent.name}"`);
+      spinner.succeed(`Pushed ${files.length} data file(s) to "${agent.name}"`);
     } catch (err: any) {
       spinner.fail(err.message);
       process.exit(1);
     }
   }
 }
+
+export const pushCommand = pushDataCommand;

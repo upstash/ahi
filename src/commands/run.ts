@@ -10,7 +10,7 @@ interface RunOptions {
 async function runOnAgent(agent: AgentConfig, prompt: string, apiKey: string): Promise<{ name: string; output: string; error?: string }> {
   const box = await getBox(agent.name, apiKey);
   if (!box) {
-    return { name: agent.name, output: "", error: `Box "${agent.name}" not found. Run ${chalk.bold("ahi sync")} first.` };
+    return { name: agent.name, output: "", error: `Box "${agent.name}" not found. Run ${chalk.bold("ahi apply")} first.` };
   }
   await box.cd("/workspace/home");
 
@@ -79,7 +79,7 @@ async function runSingleAgent(agent: AgentConfig, prompt: string, apiKey: string
     const box = await getBox(agent.name, apiKey);
     if (!box) {
       spinner.stop();
-      console.error(chalk.red(`Box "${agent.name}" not found. Run ${chalk.bold("ahi sync")} first.`));
+      console.error(chalk.red(`Box "${agent.name}" not found. Run ${chalk.bold("ahi apply")} first.`));
       process.exit(1);
     }
     await box.cd("/workspace/home");

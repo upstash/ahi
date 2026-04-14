@@ -250,7 +250,7 @@ agents:
 Then:
 
 ```bash
-ahi sync    # Upload tools, skills, and schedules to the box
+ahi apply   # Apply tools, skills, and schedules to the box
 ahi run "Research the latest AI news"   # Run immediately
 ahi console # Monitor runs, logs, files, schedules
 ```

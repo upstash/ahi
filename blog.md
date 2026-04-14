@@ -109,17 +109,17 @@ agents:
 ahi init              # scaffold the folder structure
 ahi dev "prompt"      # run an agent locally — fast iteration
 ahi run "prompt"      # run an agent remotely on the box
-ahi sync              # diff local vs remote, upload only what changed
+ahi apply             # apply project files and schedules to the box
 ahi console           # open the monitoring dashboard
 ```
 
 There's no deploy step. Each primitive has its own lifecycle:
 
-- Fix a bug in a tool → `ahi sync`. Only that file uploads.
+- Fix a bug in a tool → `ahi apply`. Only that file updates remotely.
 - Test a change locally → `ahi dev "try the new tool"`. No upload, instant feedback.
 - Trigger a remote run → `ahi run "run daily trading analysis"`. Runs on the box, streams output back.
-- Rewrite the agent's strategy → update [SKILL.md](http://SKILL.md), run `ahi sync`. Same tools, same data, new behavior.
-- Switch from Claude to Gemini → change the model in `ahi.yaml`, run `ahi sync`. Tools, skills, and data stay untouched.
+- Rewrite the agent's strategy → update [SKILL.md](http://SKILL.md), run `ahi apply`. Same tools, same data, new behavior.
+- Switch from Claude to Gemini → change the model in `ahi.yaml`, run `ahi apply`. Tools, skills, and data stay untouched.
 - The agent writes its own data → you never touch it. It survives every update above.
 
 No build step, no container image, no CI pipeline. Your local folder is the source of truth.
@@ -139,7 +139,7 @@ No build step, no container image, no CI pipeline. Your local folder is the sour
 npm install -g @upstash/ahi
 ahi init
 ahi dev "do something useful"    # test locally
-ahi sync                          # push to the box
+ahi apply                         # apply project state to the box
 ahi run "do something useful"    # run remotely
 ```
 

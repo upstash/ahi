@@ -34,7 +34,7 @@ Ahi implements the **agent server** architecture. Instead of app code, you get f
 | **Data**     | Durable JSON/MD files that persist across runs  |
 | **Schedule** | Cron that sends prompts, not code               |
 
-Each primitive has its own lifecycle. Fix a bug in a tool — `ahi sync`, only that file uploads. Rewrite the agent's strategy — update the skill file, `ahi sync`. Same tools, same data, new behavior. Switch from Claude to GPT — change the model in `ahi.yaml`, `ahi sync`. Tools, skills, and data stay untouched.
+Each primitive has its own lifecycle. Fix a bug in a tool — `ahi apply`, only that file updates remotely. Rewrite the agent's strategy — update the skill file, `ahi apply`. Same tools, same data, new behavior. Switch from Claude to GPT — change the model in `ahi.yaml`, `ahi apply`. Tools, skills, and data stay untouched.
 
 ## Install
 
@@ -48,7 +48,7 @@ npm install -g @upstash/ahi
 ahi init                          # scaffold project structure
 cp .env.example .env              # add your API keys
 ahi dev "remember to buy milk"    # run agent locally
-ahi sync                          # push to the box
+ahi apply                         # apply project state to the box
 ahi run "list my notes"           # run remotely
 ```
 
@@ -57,13 +57,15 @@ ahi run "list my notes"           # run remotely
 ```
 my-project/
 ├── ahi.yaml          # agent definitions
+├── CLAUDE.md         # local Claude development guidance
+├── AGENTS.md         # local Codex/OpenCode development guidance
 ├── .env              # API keys
 ├── tools/            # scripts agents execute
-├── skills/           # markdown instructions (system prompts)
+├── skills/           # reusable workflow instructions and native skill source
 └── data/             # durable files managed by the agent
 ```
 
-The folder structure is the convention. `tools/` maps to Tools, `skills/` maps to Skills, `data/` maps to Data. The `ahi.yaml` defines Agents and Schedules.
+The folder structure is the convention. `tools/` maps to Tools, `skills/` maps to Skills, `data/` maps to Data. Root `CLAUDE.md` and `AGENTS.md` are local-only development guidance for coding agents working in the repo. The `skills:` entry in `ahi.yaml` is the deployed runtime instruction entrypoint. On apply, Ahi mirrors valid skill packages from `skills/` into provider-native discovery paths for Claude and Codex-compatible agents. The `ahi.yaml` defines Agents and Schedules.
 
 ## ahi.yaml
 
@@ -86,6 +88,51 @@ agents:
         prompt: "Do your daily task"
         timeout: 300000
 ```
+
+## Skills
+
+The `skills:` field in `ahi.yaml` points to the primary runtime skill file for the project:
+
+```yaml
+skills: ./skills/SKILL.md
+```
+
+This is the deployed runtime instruction entrypoint. For local `ahi dev` runs, Ahi prefers the provider-specific root file when present:
+
+- `CLAUDE.md` for Claude local development
+- `AGENTS.md` for Codex/OpenCode local development
+- otherwise the path configured in `skills:`
+
+Those root files are optional. They help coding agents work on the repo locally, but they do not define deployed runtime behavior.
+
+Before each `ahi dev`, Ahi prepares the local provider-specific skill setup:
+
+- nested skill packages under `skills/` are mirrored into `.claude/skills/` or `.agents/skills/`
+
+That means you can keep multiple files and folders under `skills/`, but local runs still do not auto-pick one of them for you. Use `CLAUDE.md` or `AGENTS.md` for repo-specific development guidance, and treat `skills/SKILL.md` as the runtime behavior you are developing. If local root files disagree with `skills/SKILL.md`, the `skills:` path remains the source of truth for what gets deployed.
+
+On `ahi apply`, the configured `skills:` file is projected into the provider root filename on the box, and the entire `skills/` directory is uploaded. Any directory under `skills/` that contains a `SKILL.md` file is treated as a skill package and mirrored into the provider's native skill directory, along with any helper files in that folder. Local root files like `CLAUDE.md` and `AGENTS.md` are not uploaded.
+
+Recommended structure for multiple skills:
+
+```text
+skills/
+├── SKILL.md
+├── notes/
+│   ├── SKILL.md
+│   └── templates/
+└── research/
+    ├── SKILL.md
+    └── references/
+```
+
+In this layout:
+
+- `skills/SKILL.md` is the primary router referenced by `ahi.yaml`
+- `skills/notes/SKILL.md` and `skills/research/SKILL.md` are reusable native skill packages
+- helper files inside each package are uploaded with that package
+
+If you use nested skill packages, keep the root `skills/SKILL.md` as the router. Do not rely on it also being mirrored as a native default package when nested skill directories are present.
 
 ### Config Fields
 
@@ -110,20 +157,27 @@ agents:
 
 ### `ahi init`
 
-Scaffolds a minimal project with a notes agent, tool, and skill.
+Scaffolds a minimal project with a notes agent, tool, runtime skill, and local development instruction files for Claude and Codex-compatible agents.
 
 ### `ahi dev <prompt>`
 
 Runs the agent locally using the installed CLI (Claude Code, Codex, or OpenCode).
+Before launch, Ahi prepares local provider-specific skill files from your project:
+
+- `CLAUDE.md` or `AGENTS.md` is used when present
+- if that root file is missing, Ahi falls back to the path in `skills:`
+- nested skill packages under `skills/` are mirrored into the local native skill directory for the selected provider
+
+Local root files are optional and local-only. They are meant to help coding agents work on the project; they are not uploaded by `ahi apply`.
 
 ```
 ahi dev "save a note about the meeting"
 ahi dev "list my notes" --agent my-agent
 ```
 
-### `ahi sync`
+### `ahi apply`
 
-Pushes tools, skills, env vars, setup commands, and schedules to the box. Creates the box if it doesn't exist.
+Applies tools, skills, env vars, setup commands, and schedules to every agent box. Creates boxes if they don't exist. The configured `skills:` file is projected into the provider root instruction filename inside each box, and valid skill packages from `skills/` are mirrored into `.claude/skills/` or `.agents/skills/` based on provider. Local root files like `CLAUDE.md` and `AGENTS.md` are not uploaded.
 
 Provider API keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`) are automatically picked up from your environment when creating a box.
 
@@ -136,29 +190,30 @@ ahi run "analyze today's data"
 ahi run "generate report" --agent my-agent
 ```
 
-### `ahi pull`
+### `ahi pull-data`
 
 Downloads the agent's `data/` directory from the box to your local project.
 
 ```
-ahi pull
-ahi pull --agent my-agent
+ahi pull-data
+ahi pull-data --agent my-agent
 ```
 
-### `ahi push`
+### `ahi push-data`
 
 Uploads your local `data/` directory to the box.
 
 ```
-ahi push
-ahi push --agent my-agent
+ahi push-data
+ahi push-data --agent my-agent
+ahi push-data --all
 ```
 
 ## Environment Variables
 
 | Variable              | Used for                                              |
 | --------------------- | ----------------------------------------------------- |
-| `UPSTASH_BOX_API_KEY` | Required for `sync`, `run`, `pull`, `push`            |
+| `UPSTASH_BOX_API_KEY` | Required for `apply`, `run`, `pull-data`, `push-data` |
 | `ANTHROPIC_API_KEY`   | Passed to box when provider is `claude`               |
 | `OPENAI_API_KEY`      | Passed to box when provider is `openai`               |
 | `GOOGLE_API_KEY`      | Passed to box when provider is `gemini` or `opencode` |

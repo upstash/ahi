@@ -1,8 +1,8 @@
 import { spawn } from "child_process";
-import { resolve } from "path";
 import chalk from "chalk";
 import ora from "ora";
 import { loadConfig, loadEnv, resolveAgent, inferProvider, type AgentConfig } from "../config.js";
+import { prepareLocalSkills } from "../skills.js";
 
 interface DevOptions {
   agent?: string;
@@ -10,7 +10,7 @@ interface DevOptions {
 
 function runAgentLocally(agent: AgentConfig, config: { skills: string }, prompt: string, cwd: string): Promise<{ name: string; output: string; error?: string }> {
   const provider = agent.provider ?? inferProvider(agent.model);
-  const skillPath = resolve(cwd, config.skills);
+  const skillPath = prepareLocalSkills(cwd, provider, config.skills);
 
   const { cmd, args } = buildAgentCommand({
     provider,
@@ -90,7 +90,7 @@ export async function devCommand(prompt: string, options: DevOptions) {
 
 function runSingleAgentDev(agent: AgentConfig, config: { skills: string }, prompt: string, cwd: string) {
   const provider = agent.provider ?? inferProvider(agent.model);
-  const skillPath = resolve(cwd, config.skills);
+  const skillPath = prepareLocalSkills(cwd, provider, config.skills);
 
   console.log(chalk.blue(`Running agent ${chalk.bold(agent.name)} locally`));
   console.log(chalk.dim(`Provider: ${provider} | Model: ${agent.model}`));

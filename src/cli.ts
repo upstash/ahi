@@ -5,9 +5,9 @@ import { fileURLToPath } from "url";
 import { initCommand } from "./commands/init.js";
 import { devCommand } from "./commands/dev.js";
 import { runCommand } from "./commands/run.js";
-import { syncCommand } from "./commands/sync.js";
-import { pullCommand } from "./commands/pull.js";
-import { pushCommand } from "./commands/push.js";
+import { applyCommand } from "./commands/sync.js";
+import { pullDataCommand, pullCommand } from "./commands/pull.js";
+import { pushDataCommand, pushCommand } from "./commands/push.js";
 
 
 function getVersion() {
@@ -18,6 +18,10 @@ function getVersion() {
   } catch {
     return "0.0.0";
   }
+}
+
+function warnDeprecated(command: string, replacement: string) {
+  console.warn(`Deprecated: ${command} is now ${replacement}`);
 }
 
 program
@@ -45,21 +49,48 @@ program
   .action(runCommand);
 
 program
+  .command("apply")
+  .description("Apply local project files, setup, and schedules to all agent boxes")
+  .action(applyCommand);
+
+program
+  .command("pull-data")
+  .description("Download data/ from an agent box to local")
+  .option("--agent <name>", "Agent name from ahi.yaml")
+  .action(pullDataCommand);
+
+program
+  .command("push-data")
+  .description("Upload local data/ to agent boxes")
+  .option("--agent <name>", "Agent name from ahi.yaml")
+  .option("--all", "Push to all agents")
+  .action(pushDataCommand);
+
+program
   .command("sync")
-  .description("Push local files, setup, and schedules to the Box")
-  .action(syncCommand);
+  .description("Deprecated alias for apply")
+  .action(() => {
+    warnDeprecated("ahi sync", "ahi apply");
+    return applyCommand();
+  });
 
 program
   .command("pull")
-  .description("Download data/ from the Box to local")
+  .description("Deprecated alias for pull-data")
   .option("--agent <name>", "Agent name from ahi.yaml")
-  .action(pullCommand);
+  .action((options) => {
+    warnDeprecated("ahi pull", "ahi pull-data");
+    return pullCommand(options);
+  });
 
 program
   .command("push")
-  .description("Upload local data/ to the Box")
+  .description("Deprecated alias for push-data")
   .option("--agent <name>", "Agent name from ahi.yaml")
   .option("--all", "Push to all agents")
-  .action(pushCommand);
+  .action((options) => {
+    warnDeprecated("ahi push", "ahi push-data");
+    return pushCommand(options);
+  });
 
 program.parse();

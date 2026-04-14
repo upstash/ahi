@@ -23,7 +23,7 @@ ahi/
 | `ahi init` | Scaffold the folder structure (tools/, skills/, data/, ahi.yaml) |
 | `ahi dev "prompt"` | Run an agent locally — fast iteration, no Box involved |
 | `ahi run "prompt"` | Run an agent remotely on the Box, stream output back |
-| `ahi sync` | Diff local vs remote, upload only changed files |
+| `ahi apply` | Apply local project state to all agent boxes |
 | `ahi console` | Open the monitoring dashboard |
 
 ### ahi.yaml Schema (from blog)
@@ -73,7 +73,7 @@ Web UI for monitoring agent servers. Shows which agents are running, sleeping, w
 - `box.pause()` / `box.resume()` / `box.delete()`
 - Auth: `UPSTASH_BOX_API_KEY` env var or `apiKey` param
 
-## `ahi sync` Flow
+## `ahi apply` Flow
 1. Read `ahi.yaml` and `.env`
 2. For each agent in `ahi.yaml`:
    - Get or create the Box (by name)
@@ -99,7 +99,7 @@ Web UI for monitoring agent servers. Shows which agents are running, sleeping, w
 
 ## Agent Selection
 - `ahi dev` / `ahi run`: default to first agent in `ahi.yaml`, override with `--agent <name>`
-- `ahi sync`: always syncs all agents (each gets its own Box)
+- `ahi apply`: always updates all agents (each gets its own Box)
 
 ## `ahi init` Scaffold
 ```

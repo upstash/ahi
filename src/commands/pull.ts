@@ -9,7 +9,7 @@ interface PullOptions {
   agent?: string;
 }
 
-export async function pullCommand(options: PullOptions) {
+export async function pullDataCommand(options: PullOptions) {
   const cwd = process.cwd();
   loadEnv(cwd);
 
@@ -27,7 +27,7 @@ export async function pullCommand(options: PullOptions) {
   try {
     const box = await getBox(agent.name, apiKey);
     if (!box) {
-      spinner.fail(`Box "${agent.name}" not found. Run ${chalk.bold("ahi sync")} first.`);
+      spinner.fail(`Box "${agent.name}" not found. Run ${chalk.bold("ahi apply")} first.`);
       process.exit(1);
     }
 
@@ -53,7 +53,7 @@ export async function pullCommand(options: PullOptions) {
       count++;
     }
 
-    spinner.succeed(`Pulled ${count} file(s) from "${agent.name}" to data/`);
+    spinner.succeed(`Pulled ${count} data file(s) from "${agent.name}" to data/`);
   } catch (err: any) {
     spinner.fail(err.message);
     process.exit(1);
@@ -77,3 +77,5 @@ async function listFilesRecursive(
 
   return paths;
 }
+
+export const pullCommand = pullDataCommand;

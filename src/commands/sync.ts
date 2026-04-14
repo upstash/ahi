@@ -1,9 +1,9 @@
 import { resolve } from "path";
-import { existsSync } from "fs";
 import chalk from "chalk";
 import ora from "ora";
 import { loadConfig, loadEnv, inferProvider } from "../config.js";
 import { getOrCreateBox, collectFiles, collectRootFiles } from "../box.js";
+import { collectNativeSkillUploadFiles, collectRootInstructionUploadFiles } from "../skills.js";
 
 const ROOT_RUNTIME_FILES = [
   "package.json",
@@ -17,7 +17,7 @@ const ROOT_RUNTIME_FILES = [
   ".npmrc",
 ];
 
-export async function syncCommand() {
+export async function applyCommand() {
   const cwd = process.cwd();
   loadEnv(cwd);
 
@@ -30,7 +30,7 @@ export async function syncCommand() {
   }
 
   for (const agent of config.agents) {
-    console.log(chalk.blue(`\nSyncing agent ${chalk.bold(agent.name)}...`));
+    console.log(chalk.blue(`\nApplying local project to agent ${chalk.bold(agent.name)}...`));
 
     const spinner = ora("Connecting to box...").start();
 
@@ -76,19 +76,20 @@ export async function syncCommand() {
         }
       }
 
-      // Copy skill to provider-specific root paths so agents auto-load it
+      // Project the configured runtime skill into the provider root filename on the box.
       const provider = agent.provider ?? inferProvider(agent.model);
-      const skillFilePath = resolve(cwd, config.skills);
-      if (existsSync(skillFilePath)) {
-        const rootSkillFiles: { path: string; destination: string }[] = [];
-        if (provider === "claude") {
-          rootSkillFiles.push({ path: skillFilePath, destination: "/workspace/home/CLAUDE.md" });
-        } else if (provider === "openai" || provider === "opencode") {
-          rootSkillFiles.push({ path: skillFilePath, destination: "/workspace/home/AGENTS.md" });
-        }
-        if (rootSkillFiles.length > 0) {
-          await box.files.upload(rootSkillFiles);
-        }
+      const rootSkillFiles = collectRootInstructionUploadFiles(
+        cwd,
+        provider,
+        config.skills,
+      );
+      if (rootSkillFiles.length > 0) {
+        await box.files.upload(rootSkillFiles);
+      }
+
+      const nativeSkillFiles = collectNativeSkillUploadFiles(cwd, provider);
+      if (nativeSkillFiles.length > 0) {
+        await box.files.upload(nativeSkillFiles);
       }
 
       // Ensure data directory exists on the Box
@@ -115,7 +116,7 @@ export async function syncCommand() {
         setupSpinner.succeed(`Ran ${config.setup.length} setup command(s)`);
       }
 
-      const scheduleSpinner = ora("Syncing schedules...").start();
+      const scheduleSpinner = ora("Applying schedules...").start();
       const existingSchedules = await box.schedule.list();
       for (const schedule of existingSchedules) {
         await box.schedule.delete(schedule.id);
@@ -131,15 +132,17 @@ export async function syncCommand() {
       }
 
       scheduleSpinner.succeed(
-        `Synced ${(agent.schedules ?? []).length} schedule(s)`,
+        `Applied ${(agent.schedules ?? []).length} schedule(s)`,
       );
 
-      console.log(chalk.green(`  ${agent.name} synced.`));
+      console.log(chalk.green(`  ${agent.name} updated.`));
     } catch (err: any) {
       spinner.fail(err.message);
       process.exit(1);
     }
   }
 
-  console.log(chalk.green("\nAll agents synced."));
+  console.log(chalk.green("\nApplied local project to all agents."));
 }
+
+export const syncCommand = applyCommand;
