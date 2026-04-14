@@ -1,10 +1,4 @@
 node_modules/
-packages/*/node_modules/
-
-packages/cli/dist/
-packages/cli/console/
-packages/console/build/
-packages/console/.svelte-kit/
-
+dist/
 .DS_Store
 *.log
