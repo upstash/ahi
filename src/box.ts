@@ -33,10 +33,15 @@ export async function getOrCreateBox(
 
   if (existing) {
     const box = await Box.get(existing.id, { apiKey });
+    console.log(`  Using existing box ${existing.id}`);
     return box;
   }
 
   const providerApiKey = resolveAgentApiKey(agent);
+  const keyPreview = providerApiKey
+    ? `"${providerApiKey.slice(0, 8)}..."`
+    : "(none)";
+  console.log(`  Creating new box | harness=${agent.harness} model=${agent.model} apiKey=${keyPreview}`);
 
   const box = await Box.create({
     apiKey,
@@ -49,6 +54,7 @@ export async function getOrCreateBox(
     },
   });
 
+  console.log(`  Box created: ${box.id}`);
   return box;
 }
 
