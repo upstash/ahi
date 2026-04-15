@@ -2,12 +2,15 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { relative, resolve, sep, dirname } from "path";
 import { collectFiles } from "./box.js";
 
-function resolveProviderRootInstructionFilename(provider: string): string | null {
-  if (provider === "claude") {
+function resolveHarnessRootInstructionFilename(harness: string): string | null {
+  if (harness === "claude-code") {
     return "CLAUDE.md";
   }
 
-  if (provider === "openai" || provider === "opencode") {
+  if (
+    harness === "codex"
+    || harness === "opencode"
+  ) {
     return "AGENTS.md";
   }
 
@@ -15,11 +18,11 @@ function resolveProviderRootInstructionFilename(provider: string): string | null
 }
 
 export function resolveLocalInstructionPath(
-  provider: string,
+  harness: string,
   cwd: string,
   configuredSkillPath: string,
 ): string {
-  const rootInstructionFilename = resolveProviderRootInstructionFilename(provider);
+  const rootInstructionFilename = resolveHarnessRootInstructionFilename(harness);
   if (rootInstructionFilename) {
     const rootInstructionPath = resolve(cwd, rootInstructionFilename);
     if (existsSync(rootInstructionPath)) {
@@ -32,10 +35,10 @@ export function resolveLocalInstructionPath(
 
 export function collectRootInstructionUploadFiles(
   cwd: string,
-  provider: string,
+  harness: string,
   configuredSkillPath: string,
 ): { path: string; destination: string }[] {
-  const rootInstructionFilename = resolveProviderRootInstructionFilename(provider);
+  const rootInstructionFilename = resolveHarnessRootInstructionFilename(harness);
   if (!rootInstructionFilename) {
     return [];
   }
@@ -56,9 +59,9 @@ export function collectRootInstructionUploadFiles(
 
 export function collectNativeSkillUploadFiles(
   cwd: string,
-  provider: string,
+  harness: string,
 ): { path: string; destination: string }[] {
-  const nativeRoot = resolveProviderNativeSkillRoot(provider);
+  const nativeRoot = resolveHarnessNativeSkillRoot(harness);
   if (!nativeRoot) {
     return [];
   }
@@ -68,10 +71,10 @@ export function collectNativeSkillUploadFiles(
 
 export function prepareLocalSkills(
   cwd: string,
-  provider: string,
+  harness: string,
   configuredSkillPath: string,
 ): string {
-  const nativeRoot = resolveProviderNativeSkillRoot(provider);
+  const nativeRoot = resolveHarnessNativeSkillRoot(harness);
   if (nativeRoot) {
     const files = collectNativeSkillFiles(cwd, nativeRoot, "local");
     for (const file of files) {
@@ -80,15 +83,18 @@ export function prepareLocalSkills(
     }
   }
 
-  return resolveLocalInstructionPath(provider, cwd, configuredSkillPath);
+  return resolveLocalInstructionPath(harness, cwd, configuredSkillPath);
 }
 
-function resolveProviderNativeSkillRoot(provider: string): string | null {
-  if (provider === "claude") {
+function resolveHarnessNativeSkillRoot(harness: string): string | null {
+  if (harness === "claude-code") {
     return ".claude/skills";
   }
 
-  if (provider === "openai" || provider === "opencode") {
+  if (
+    harness === "codex"
+    || harness === "opencode"
+  ) {
     return ".agents/skills";
   }
 

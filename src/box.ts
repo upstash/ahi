@@ -1,6 +1,6 @@
-import { Box, inferDefaultProvider } from "@upstash/box";
+import { Box } from "@upstash/box";
 import type { AgentConfig } from "./config.js";
-import { resolveProviderApiKey } from "./config.js";
+import { resolveAgentApiKey } from "./config.js";
 import { readdirSync, existsSync } from "fs";
 import { resolve, relative, join } from "path";
 
@@ -36,16 +36,14 @@ export async function getOrCreateBox(
     return box;
   }
 
-  const provider = agent.provider ?? inferDefaultProvider(agent.model).toString();
-
-  const providerApiKey = resolveProviderApiKey(provider);
+  const providerApiKey = resolveAgentApiKey(agent);
 
   const box = await Box.create({
     apiKey,
     name: agent.name,
     runtime: "node",
     agent: {
-      provider: provider as any,
+      provider: agent.harness as any,
       model: agent.model as any,
       ...(providerApiKey && { apiKey: providerApiKey }),
     },

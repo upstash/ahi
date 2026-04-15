@@ -3,6 +3,9 @@ import { resolve } from "path";
 import yaml from "js-yaml";
 import { config as loadDotenv } from "dotenv";
 
+export const AGENT_HARNESSES = ["claude-code", "codex", "opencode"] as const;
+export type AgentHarness = (typeof AGENT_HARNESSES)[number];
+
 export interface ScheduleConfig {
   cron: string;
   prompt: string;
@@ -12,12 +15,20 @@ export interface ScheduleConfig {
 export interface AgentConfig {
   name: string;
   model: string;
-  provider?: string;
+  harness: AgentHarness;
   schedules?: ScheduleConfig[];
 }
 
 export interface AhiConfig {
   tools: string;
+  skills: string;
+  env?: Record<string, string | null>;
+  setup?: string[];
+  agents: AgentConfig[];
+}
+
+export interface AhiDevConfig {
+  tools?: string;
   skills: string;
   env?: Record<string, string | null>;
   setup?: string[];
@@ -39,11 +50,46 @@ export function loadConfig(cwd: string = process.cwd()): AhiConfig {
     throw new Error("ahi.yaml must define at least one agent");
   }
 
+  validateAgents(config.agents);
+
   if (config.setup && !Array.isArray(config.setup)) {
     throw new Error("ahi.yaml field \"setup\" must be an array of commands");
   }
 
   return config;
+}
+
+/**
+ * Load ahi.yaml for local development. Falls back to defaults when absent and
+ * does not require agent definitions.
+ */
+export function loadDevConfig(cwd: string = process.cwd()): AhiDevConfig {
+  const configPath = resolve(cwd, "ahi.yaml");
+  if (!existsSync(configPath)) {
+    return {
+      skills: "./skills/SKILL.md",
+      agents: [],
+    };
+  }
+
+  const raw = readFileSync(configPath, "utf-8");
+  const config = (yaml.load(raw) as Partial<AhiConfig> | undefined) ?? {};
+
+  if (config.setup && !Array.isArray(config.setup)) {
+    throw new Error("ahi.yaml field \"setup\" must be an array of commands");
+  }
+
+  if (Array.isArray(config.agents)) {
+    validateAgents(config.agents);
+  }
+
+  return {
+    tools: config.tools,
+    skills: config.skills ?? "./skills/SKILL.md",
+    env: config.env,
+    setup: config.setup,
+    agents: Array.isArray(config.agents) ? config.agents : [],
+  };
 }
 
 /**
@@ -89,31 +135,45 @@ export function resolveAgentStrict(
 }
 
 /**
- * Infer the provider from a model string.
+ * Validate configured agents and require an explicit harness.
  */
-export function inferProvider(model: string): string {
-  if (model.startsWith("claude") || model.includes("claude")) return "claude";
-  if (model.startsWith("gpt") || model.includes("openai")) return "openai";
-  if (model.startsWith("gemini") || model.includes("gemini")) return "gemini";
-  if (model.startsWith("opencode/")) return "opencode";
-  return "claude";
+export function validateAgents(agents: AgentConfig[]): void {
+  for (const agent of agents) {
+    if (!agent.harness) {
+      throw new Error(
+        `Agent "${agent.name}" is missing required field "harness". Allowed values: ${AGENT_HARNESSES.join(", ")}`,
+      );
+    }
+
+    if (!AGENT_HARNESSES.includes(agent.harness)) {
+      throw new Error(
+        `Agent "${agent.name}" has invalid harness "${agent.harness}". Allowed values: ${AGENT_HARNESSES.join(", ")}`,
+      );
+    }
+  }
 }
 
 /**
- * Resolve the provider API key from environment variables based on provider.
+ * Resolve the agent API key from environment variables.
  */
-export function resolveProviderApiKey(provider: string): string | undefined {
-  switch (provider) {
-    case "claude":
-      return process.env.ANTHROPIC_API_KEY;
-    case "openai":
-      return process.env.OPENAI_API_KEY;
-    case "gemini":
-    case "opencode":
-      return process.env.GOOGLE_API_KEY;
-    default:
-      return undefined;
+export function resolveAgentApiKey(agent: AgentConfig): string | undefined {
+  if (agent.model.startsWith("openrouter/")) {
+    return process.env.OPENROUTER_API_KEY;
   }
+
+  if (agent.model.startsWith("anthropic/")) {
+    return process.env.ANTHROPIC_API_KEY;
+  }
+
+  if (agent.model.startsWith("openai/")) {
+    return process.env.OPENAI_API_KEY;
+  }
+
+  if (agent.model.startsWith("opencode/")) {
+    return process.env.OPENCODE_API_KEY;
+  }
+
+  return undefined;
 }
 
 /**

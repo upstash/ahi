@@ -65,7 +65,7 @@ my-project/
 └── data/             # durable files managed by the agent
 ```
 
-The folder structure is the convention. `tools/` maps to Tools, `skills/` maps to Skills, `data/` maps to Data. Root `CLAUDE.md` and `AGENTS.md` are local-only development guidance for coding agents working in the repo. The `skills:` entry in `ahi.yaml` is the deployed runtime instruction entrypoint. On apply, Ahi mirrors valid skill packages from `skills/` into provider-native discovery paths for Claude and Codex-compatible agents. The `ahi.yaml` defines Agents and Schedules.
+The folder structure is the convention. `tools/` maps to Tools, `skills/` maps to Skills, `data/` maps to Data. Root `CLAUDE.md` and `AGENTS.md` are local-only development guidance for coding agents working in the repo. The `skills:` entry in `ahi.yaml` is the deployed runtime instruction entrypoint. On apply, Ahi mirrors valid skill packages from `skills/` into harness-native discovery paths based on the configured runner: `claude-code` uses `.claude/skills`, while `codex` and `opencode` use `.agents/skills`. The `ahi.yaml` defines Agents and Schedules.
 
 ## ahi.yaml
 
@@ -82,7 +82,8 @@ setup:
 
 agents:
   - name: my-agent
-    model: claude-sonnet-4-6
+    harness: claude-code
+    model: anthropic/claude-sonnet-4-6
     schedules:
       - cron: "0 9 * * *"
         prompt: "Do your daily task"
@@ -97,21 +98,21 @@ The `skills:` field in `ahi.yaml` points to the primary runtime skill file for t
 skills: ./skills/SKILL.md
 ```
 
-This is the deployed runtime instruction entrypoint. For local `ahi dev` runs, Ahi prefers the provider-specific root file when present:
+This is the deployed runtime instruction entrypoint. For local `ahi dev` runs, Ahi prefers the harness-specific root file when present:
 
-- `CLAUDE.md` for Claude local development
-- `AGENTS.md` for Codex/OpenCode local development
+- `CLAUDE.md` for `claude-code` local development
+- `AGENTS.md` for `codex` and `opencode` local development
 - otherwise the path configured in `skills:`
 
 Those root files are optional. They help coding agents work on the repo locally, but they do not define deployed runtime behavior.
 
-Before each `ahi dev`, Ahi prepares the local provider-specific skill setup:
+Before each `ahi dev`, Ahi prepares the local harness-specific skill setup:
 
 - nested skill packages under `skills/` are mirrored into `.claude/skills/` or `.agents/skills/`
 
 That means you can keep multiple files and folders under `skills/`, but local runs still do not auto-pick one of them for you. Use `CLAUDE.md` or `AGENTS.md` for repo-specific development guidance, and treat `skills/SKILL.md` as the runtime behavior you are developing. If local root files disagree with `skills/SKILL.md`, the `skills:` path remains the source of truth for what gets deployed.
 
-On `ahi apply`, the configured `skills:` file is projected into the provider root filename on the box, and the entire `skills/` directory is uploaded. Any directory under `skills/` that contains a `SKILL.md` file is treated as a skill package and mirrored into the provider's native skill directory, along with any helper files in that folder. Local root files like `CLAUDE.md` and `AGENTS.md` are not uploaded.
+On `ahi apply`, the configured `skills:` file is projected into the harness root filename on the box, and the entire `skills/` directory is uploaded. Any directory under `skills/` that contains a `SKILL.md` file is treated as a skill package and mirrored into the harness-native skill directory, along with any helper files in that folder. Local root files like `CLAUDE.md` and `AGENTS.md` are not uploaded.
 
 Recommended structure for multiple skills:
 
@@ -149,8 +150,8 @@ If you use nested skill packages, keep the root `skills/SKILL.md` as the router.
 | Field       | Required | Description                                                              |
 | ----------- | -------- | ------------------------------------------------------------------------ |
 | `name`      | yes      | Agent name (also the box name)                                           |
-| `model`     | yes      | Model identifier (e.g. `claude-sonnet-4-6`, `gpt-5.4`, `gemini-3.1-pro`) |
-| `provider`  | no       | Override inferred provider (`claude`, `openai`, `gemini`, `opencode`)    |
+| `model`     | yes      | Model identifier (for example `anthropic/claude-sonnet-4-6`, `openai/gpt-5.4`, `openrouter/google/gemini-3.1-pro-preview`) |
+| `harness`   | yes      | Runner to use for the agent: `claude-code`, `codex`, or `opencode` |
 | `schedules` | no       | Cron schedules with prompt and optional timeout                          |
 
 ## Commands
@@ -162,11 +163,14 @@ Scaffolds a minimal project with a notes agent, tool, runtime skill, and local d
 ### `ahi dev <prompt>`
 
 Runs the agent locally using the installed CLI (Claude Code, Codex, or OpenCode).
-Before launch, Ahi prepares local provider-specific skill files from your project:
+By default, `ahi dev` picks a single local development agent based on your local instruction files and installed CLI. It does not require or fan out across the agents defined in `ahi.yaml`.
+Before launch, Ahi prepares local harness-specific skill files from your project:
 
 - `CLAUDE.md` or `AGENTS.md` is used when present
 - if that root file is missing, Ahi falls back to the path in `skills:`
-- nested skill packages under `skills/` are mirrored into the local native skill directory for the selected provider
+- nested skill packages under `skills/` are mirrored into the local native skill directory for the selected harness
+
+Use `--agent <name>` only when you explicitly want to emulate a configured agent from `ahi.yaml`.
 
 Local root files are optional and local-only. They are meant to help coding agents work on the project; they are not uploaded by `ahi apply`.
 
@@ -177,9 +181,9 @@ ahi dev "list my notes" --agent my-agent
 
 ### `ahi apply`
 
-Applies tools, skills, env vars, setup commands, and schedules to every agent box. Creates boxes if they don't exist. The configured `skills:` file is projected into the provider root instruction filename inside each box, and valid skill packages from `skills/` are mirrored into `.claude/skills/` or `.agents/skills/` based on provider. Local root files like `CLAUDE.md` and `AGENTS.md` are not uploaded.
+Applies tools, skills, env vars, setup commands, and schedules to every agent box. Creates boxes if they don't exist. The configured `skills:` file is projected into the harness root instruction filename inside each box, and valid skill packages from `skills/` are mirrored into `.claude/skills/` or `.agents/skills/` based on the explicit `harness`. Local root files like `CLAUDE.md` and `AGENTS.md` are not uploaded.
 
-Provider API keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`) are automatically picked up from your environment when creating a box.
+Agent API keys are picked up from your environment based on the `model` prefix, not the `harness`. `anthropic/...` uses `ANTHROPIC_API_KEY`, `openai/...` uses `OPENAI_API_KEY`, `openrouter/...` uses `OPENROUTER_API_KEY`, and `opencode/...` uses `OPENCODE_API_KEY`.
 
 ### `ahi run <prompt>`
 
@@ -214,9 +218,10 @@ ahi push-data --all
 | Variable              | Used for                                              |
 | --------------------- | ----------------------------------------------------- |
 | `UPSTASH_BOX_API_KEY` | Required for `apply`, `run`, `pull-data`, `push-data` |
-| `ANTHROPIC_API_KEY`   | Passed to box when provider is `claude`               |
-| `OPENAI_API_KEY`      | Passed to box when provider is `openai`               |
-| `GOOGLE_API_KEY`      | Passed to box when provider is `gemini` or `opencode` |
+| `ANTHROPIC_API_KEY`   | Passed when the model starts with `anthropic/...` |
+| `OPENAI_API_KEY`      | Passed when the model starts with `openai/...` |
+| `OPENROUTER_API_KEY`  | Passed when the model starts with `openrouter/...` |
+| `OPENCODE_API_KEY`    | Passed when the model starts with `opencode/...` |
 
 ## Example: Botstreet
 
@@ -228,21 +233,24 @@ skills: ./skills/SKILL.md
 
 agents:
   - name: botstreet-claude
-    model: claude-opus-4.6
+    harness: claude-code
+    model: anthropic/claude-opus-4-6
     schedules:
       - cron: "30 14 * * 1-5"
         prompt: "Run daily trading analysis, research market news, make trades, and save a snapshot"
         timeout: 600000
 
   - name: botstreet-gemini
-    model: gemini-3.1-pro
+    harness: claude-code
+    model: openrouter/google/gemini-3.1-pro-preview
     schedules:
       - cron: "30 14 * * 1-5"
         prompt: "Run daily trading analysis, research market news, make trades, and save a snapshot"
         timeout: 600000
 
   - name: botstreet-openai
-    model: gpt-5.4
+    harness: codex
+    model: openai/gpt-5.4
     schedules:
       - cron: "30 14 * * 1-5"
         prompt: "Run daily trading analysis, research market news, make trades, and save a snapshot"

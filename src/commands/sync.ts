@@ -1,7 +1,7 @@
 import { resolve } from "path";
 import chalk from "chalk";
 import ora from "ora";
-import { loadConfig, loadEnv, inferProvider } from "../config.js";
+import { loadConfig, loadEnv } from "../config.js";
 import { getOrCreateBox, collectFiles, collectRootFiles } from "../box.js";
 import { collectNativeSkillUploadFiles, collectRootInstructionUploadFiles } from "../skills.js";
 
@@ -76,18 +76,17 @@ export async function applyCommand() {
         }
       }
 
-      // Project the configured runtime skill into the provider root filename on the box.
-      const provider = agent.provider ?? inferProvider(agent.model);
+      // Project the configured runtime skill into the harness root filename on the box.
       const rootSkillFiles = collectRootInstructionUploadFiles(
         cwd,
-        provider,
+        agent.harness,
         config.skills,
       );
       if (rootSkillFiles.length > 0) {
         await box.files.upload(rootSkillFiles);
       }
 
-      const nativeSkillFiles = collectNativeSkillUploadFiles(cwd, provider);
+      const nativeSkillFiles = collectNativeSkillUploadFiles(cwd, agent.harness);
       if (nativeSkillFiles.length > 0) {
         await box.files.upload(nativeSkillFiles);
       }

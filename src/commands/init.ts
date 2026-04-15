@@ -7,7 +7,8 @@ skills: ./skills/SKILL.md
 
 agents:
   - name: my-agent
-    model: claude-sonnet-4-6
+    harness: claude-code
+    model: anthropic/claude-sonnet-4-6
 `;
 
 const SKILL_TEMPLATE = `---
@@ -67,7 +68,7 @@ The deployed runtime behavior lives in the path configured by \`skills:\` in \`a
 
 ## Source Of Truth
 
-- \`ahi.yaml\` defines the agents, models, setup commands, and schedules.
+- \`ahi.yaml\` defines the agents, providers, models, setup commands, and schedules.
 - \`skills/SKILL.md\` defines deployed runtime behavior.
 - \`CLAUDE.md\` defines local development workflow for coding agents.
 - \`tools/\` contains executable project tools.
@@ -101,7 +102,7 @@ The deployed runtime behavior lives in the path configured by \`skills:\` in \`a
 
 ## Source Of Truth
 
-- \`ahi.yaml\` defines the agents, models, setup commands, and schedules.
+- \`ahi.yaml\` defines the agents, providers, models, setup commands, and schedules.
 - \`skills/SKILL.md\` defines deployed runtime behavior.
 - \`AGENTS.md\` defines local development workflow for coding agents.
 - \`tools/\` contains executable project tools.
@@ -202,7 +203,8 @@ UPSTASH_BOX_API_KEY=
 # Required for ahi dev and passed to the box on apply
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
-GOOGLE_API_KEY=
+OPENROUTER_API_KEY=
+OPENCODE_API_KEY=
 `;
 
 export async function initCommand() {
