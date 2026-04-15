@@ -111,7 +111,7 @@ function buildAgentCommand(opts: {
       return {
         cmd: "codex",
         args: [
-          "--quiet",
+          "exec",
           "--full-auto",
           ...(opts.model ? ["--model", opts.model] : []),
           opts.prompt,
@@ -150,18 +150,18 @@ function resolveLocalDevAgent(cwd: string): DevAgentConfig {
 
   const preferredHarnesses: AgentHarness[] = [];
 
+  if (hasClaudeRoot && commandExists("claude")) {
+    preferredHarnesses.push("claude-code");
+  }
+
   if (hasAgentsRoot) {
     if (commandExists("codex")) preferredHarnesses.push("codex");
     if (commandExists("opencode")) preferredHarnesses.push("opencode");
   }
 
-  if (hasClaudeRoot && commandExists("claude")) {
-    preferredHarnesses.push("claude-code");
-  }
-
   if (preferredHarnesses.length === 0) {
-    if (commandExists("codex")) preferredHarnesses.push("codex");
     if (commandExists("claude")) preferredHarnesses.push("claude-code");
+    if (commandExists("codex")) preferredHarnesses.push("codex");
     if (commandExists("opencode")) preferredHarnesses.push("opencode");
   }
 

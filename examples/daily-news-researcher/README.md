@@ -40,5 +40,5 @@ cat data/daily-summary.md
 ## Notes
 
 - Adjust the schedule in `ahi.yaml` to match your preferred topic and run time.
-- Set the provider API key you need in `.env`.
+- Set the API key matching your model prefix in `.env`.
 - If your chosen agent runtime does not have web access, replace the prompt with a source you control or add your own fetch tool.
