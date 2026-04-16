@@ -126,7 +126,7 @@ export async function applyCommand() {
           cron: schedule.cron,
           prompt: schedule.prompt,
           timeout: schedule.timeout,
-          folder: "home",
+          folder: schedule.folder ?? "/workspace/home",
         });
       }
 

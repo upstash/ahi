@@ -10,6 +10,7 @@ export interface ScheduleConfig {
   cron: string;
   prompt: string;
   timeout?: number;
+  folder?: string;
 }
 
 export interface AgentConfig {

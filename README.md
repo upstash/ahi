@@ -88,6 +88,8 @@ agents:
       - cron: "0 9 * * *"
         prompt: "Do your daily task"
         timeout: 300000
+        # optional; defaults to /workspace/home
+        folder: /workspace/home
 ```
 
 ## Skills
@@ -152,7 +154,7 @@ If you use nested skill packages, keep the root `skills/SKILL.md` as the router.
 | `name`      | yes      | Agent name (also the box name)                                           |
 | `model`     | yes      | Model identifier (for example `anthropic/claude-sonnet-4-6`, `openai/gpt-5.4`, `openrouter/google/gemini-3.1-pro-preview`) |
 | `harness`   | yes      | Runner to use for the agent: `claude-code`, `codex`, or `opencode` |
-| `schedules` | no       | Cron schedules with prompt and optional timeout                          |
+| `schedules` | no       | Cron schedules with prompt, optional timeout, and optional folder override |
 
 ## Commands
 
@@ -181,7 +183,7 @@ ahi dev "list my notes" --agent my-agent
 
 ### `ahi apply`
 
-Applies tools, skills, env vars, setup commands, and schedules to every agent box. Creates boxes if they don't exist. The configured `skills:` file is projected into the harness root instruction filename inside each box, and valid skill packages from `skills/` are mirrored into `.claude/skills/` or `.agents/skills/` based on the explicit `harness`. Local root files like `CLAUDE.md` and `AGENTS.md` are not uploaded.
+Applies tools, skills, env vars, setup commands, and schedules to every agent box. Creates boxes if they don't exist. The configured `skills:` file is projected into the harness root instruction filename inside each box, and valid skill packages from `skills/` are mirrored into `.claude/skills/` or `.agents/skills/` based on the explicit `harness`. Scheduled prompts default to the project workspace at `/workspace/home` unless a schedule `folder` is explicitly configured. Local root files like `CLAUDE.md` and `AGENTS.md` are not uploaded.
 
 Agent API keys are picked up from your environment based on the `model` prefix, not the `harness`. `anthropic/...` uses `ANTHROPIC_API_KEY`, `openai/...` uses `OPENAI_API_KEY`, `openrouter/...` uses `OPENROUTER_API_KEY`, and `opencode/...` uses `OPENCODE_API_KEY`.
 
